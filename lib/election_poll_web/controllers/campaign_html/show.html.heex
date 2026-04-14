@@ -1,0 +1,23 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    Campaign {@campaign.id}
+    <:subtitle>This is a campaign record from your database.</:subtitle>
+    <:actions>
+      <.button navigate={~p"/campaigns"}>
+        <.icon name="hero-arrow-left" />
+      </.button>
+      <.button variant="primary" navigate={~p"/campaigns/#{@campaign}/edit?return_to=show"}>
+        <.icon name="hero-pencil-square" /> Edit campaign
+      </.button>
+    </:actions>
+  </.header>
+
+  <.list>
+    <:item title="Name">{@campaign.name}</:item>
+    <:item title="Slug">{@campaign.slug}</:item>
+    <:item title="Secret code">{@campaign.secret_code}</:item>
+    <:item title="Is active">{@campaign.is_active}</:item>
+    <:item title="Starts at">{@campaign.starts_at}</:item>
+    <:item title="Ends at">{@campaign.ends_at}</:item>
+  </.list>
+</Layouts.app>

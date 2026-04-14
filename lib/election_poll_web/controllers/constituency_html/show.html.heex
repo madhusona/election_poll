@@ -1,0 +1,21 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    Constituency {@constituency.id}
+    <:subtitle>This is a constituency record from your database.</:subtitle>
+    <:actions>
+      <.button navigate={~p"/constituencies"}>
+        <.icon name="hero-arrow-left" />
+      </.button>
+      <.button variant="primary" navigate={~p"/constituencies/#{@constituency}/edit?return_to=show"}>
+        <.icon name="hero-pencil-square" /> Edit constituency
+      </.button>
+    </:actions>
+  </.header>
+
+  <.list>
+    <:item title="Name">{@constituency.name}</:item>
+    <:item title="Code">{@constituency.code}</:item>
+    <:item title="Display order">{@constituency.display_order}</:item>
+    <:item title="Is active">{@constituency.is_active}</:item>
+  </.list>
+</Layouts.app>

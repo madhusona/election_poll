@@ -1,0 +1,532 @@
+<div class="px-4 py-6 sm:px-6 lg:px-8">
+  <div class="sm:flex sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Responses</h1>
+      <p class="mt-1 text-sm text-slate-600">
+        Total records: <%= @total_count %>
+      </p>
+    </div>
+
+    <div class="mt-4 sm:mt-0">
+      <a
+        href={export_csv_path(@filters)}
+        class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+      >
+        Export CSV
+      </a>
+    </div>
+  </div>
+
+  <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="get" action={~p"/responses"} class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Campaign</label>
+        <select name="campaign_id" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All Campaigns</option>
+          <%= for campaign <- @campaigns do %>
+            <option value={campaign.id} selected={to_string(@filters.campaign_id) == to_string(campaign.id)}>
+              <%= campaign.name %>
+            </option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Constituency</label>
+        <select name="constituency_id" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All Constituencies</option>
+          <%= for constituency <- @constituencies do %>
+            <option value={constituency.id} selected={to_string(@filters.constituency_id) == to_string(constituency.id)}>
+              <%= constituency.name %>
+            </option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Booth</label>
+        <select name="booth_name" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All Booths</option>
+          <%= for booth <- @booths do %>
+            <option value={booth} selected={@filters.booth_name == booth}>
+              <%= booth %>
+            </option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Party</label>
+        <select name="party" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All Parties</option>
+          <%= for party <- @parties do %>
+            <option value={party} selected={@filters.party == party}>
+              <%= party %>
+            </option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Age Group</label>
+        <select name="age_group" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All Age Groups</option>
+          <option value="18-20" selected={@filters.age_group == "18-20"}>18-20</option>
+          <option value="20-40" selected={@filters.age_group == "20-40"}>20-40</option>
+          <option value="40-60" selected={@filters.age_group == "40-60"}>40-60</option>
+          <option value="60+" selected={@filters.age_group == "60+"}>60+</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Gender</label>
+        <select name="gender" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All Genders</option>
+          <option value="Male" selected={@filters.gender == "Male"}>Male</option>
+          <option value="Female" selected={@filters.gender == "Female"}>Female</option>
+          <option value="Other" selected={@filters.gender == "Other"}>Other</option>
+        </select>
+      </div>
+
+      <div class="md:col-span-2 xl:col-span-6 flex flex-wrap gap-3 pt-1">
+        <button
+          type="submit"
+          class="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+        >
+          Apply Filters
+        </button>
+
+        <a
+          href={~p"/responses"}
+          class="inline-flex items-center rounded-xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300"
+        >
+          Reset
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <div class="mt-6 block xl:hidden space-y-4">
+    <%= for response <- @responses do %>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Response #<%= response.id %>
+            </div>
+            <div class="mt-1 text-sm text-slate-500">
+              <%= format_dt(response.voted_at || response.submitted_at) %>
+            </div>
+          </div>
+
+          <div class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+            <%= response.campaign_name %>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-4">
+          <div>
+            <div class="text-xs uppercase tracking-wide text-slate-400">Candidate</div>
+            <button
+              type="button"
+              class="mt-1 text-left text-base font-bold text-blue-700 hover:underline"
+              onclick={"openCandidateModal('candidate-modal-#{response.id}')"}
+            >
+              <%= response.candidate_name %>
+            </button>
+            <div class="mt-1 text-sm text-slate-500"><%= response.party_full_name || "-" %></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <div class="text-xs uppercase tracking-wide text-slate-400">Constituency</div>
+              <div class="mt-1 font-medium text-slate-800"><%= response.constituency_name %></div>
+            </div>
+
+            <div>
+              <div class="text-xs uppercase tracking-wide text-slate-400">Booth</div>
+              <div class="mt-1 font-medium text-slate-800"><%= response.booth_name || "-" %></div>
+            </div>
+
+            <div>
+              <div class="text-xs uppercase tracking-wide text-slate-400">Gender</div>
+              <div class="mt-1 font-medium text-slate-800"><%= response.gender || "-" %></div>
+            </div>
+
+            <div>
+              <div class="text-xs uppercase tracking-wide text-slate-400">Age Group</div>
+              <div class="mt-1 font-medium text-slate-800"><%= response.age_group || "-" %></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-wide text-slate-400">Location</div>
+            <div class="mt-1 text-sm text-slate-700 break-all">
+              <%= response.latitude || "-" %>, <%= response.longitude || "-" %>
+            </div>
+
+            <%= if response.latitude && response.longitude do %>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <a
+                  href={"https://www.openstreetmap.org/?mlat=#{response.latitude}&mlon=#{response.longitude}#map=17/#{response.latitude}/#{response.longitude}"}
+                  target="_blank"
+                  class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                >
+                  OpenStreetMap
+                </a>
+
+                <a
+                  href={"https://www.google.com/maps?q=#{response.latitude},#{response.longitude}"}
+                  target="_blank"
+                  class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200"
+                >
+                  Google Maps
+                </a>
+              </div>
+            <% end %>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-wide text-slate-400">Device Fingerprint</div>
+            <div class="mt-1 text-sm text-slate-700 break-all">
+              <%= response.device_fingerprint || "-" %>
+            </div>
+          </div>
+
+          <%= if @user_role == "admin" do %>
+            <div>
+              <div class="text-xs uppercase tracking-wide text-slate-400">Selfie</div>
+
+              <%= if response.selfie_path && response.selfie_path != "" do %>
+                <button
+                  type="button"
+                  class="mt-2"
+                  onclick={"openImageModal('image-modal-#{response.id}')"}
+                >
+                  <img
+                    src={~p"/admin/uploads/selfies/#{Path.basename(response.selfie_path)}"}
+                    alt="Selfie"
+                    class="h-20 w-20 rounded-xl object-cover border border-slate-200 shadow-sm"
+                  />
+                </button>
+              <% else %>
+                <div class="mt-1 text-sm text-slate-500">No selfie</div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="mt-6 hidden xl:block overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">ID</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Date & Time</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Campaign</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Constituency</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Booth</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Candidate</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Party</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Gender</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Age</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Location</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Fingerprint</th>
+
+          <%= if @user_role == "admin" do %>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Selfie</th>
+          <% end %>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-slate-100 bg-white">
+        <%= for response <- @responses do %>
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 text-sm font-semibold text-slate-800"><%= response.id %></td>
+            <td class="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">
+              <%= format_dt(response.voted_at || response.submitted_at) %>
+            </td>
+            <td class="px-4 py-3 text-sm text-slate-700"><%= response.campaign_name %></td>
+            <td class="px-4 py-3 text-sm text-slate-700"><%= response.constituency_name %></td>
+            <td class="px-4 py-3 text-sm text-slate-700"><%= response.booth_name || "-" %></td>
+
+            <td class="px-4 py-3 text-sm">
+              <button
+                type="button"
+                class="font-semibold text-blue-700 hover:underline text-left"
+                onclick={"openCandidateModal('candidate-modal-#{response.id}')"}
+              >
+                <%= response.candidate_name %>
+              </button>
+            </td>
+
+            <td class="px-4 py-3 text-sm text-slate-700"><%= response.party_full_name || "-" %></td>
+            <td class="px-4 py-3 text-sm text-slate-700"><%= response.gender || "-" %></td>
+            <td class="px-4 py-3 text-sm text-slate-700"><%= response.age_group || "-" %></td>
+
+            <td class="px-4 py-3 text-sm text-slate-700">
+              <%= if response.latitude && response.longitude do %>
+                <div class="space-y-1">
+                  <div><%= response.latitude %>, <%= response.longitude %></div>
+                  <div class="flex flex-wrap gap-2">
+                    <a
+                      href={"https://www.openstreetmap.org/?mlat=#{response.latitude}&mlon=#{response.longitude}#map=17/#{response.latitude}/#{response.longitude}"}
+                      target="_blank"
+                      class="text-xs font-medium text-blue-700 hover:underline"
+                    >
+                      OSM
+                    </a>
+                    <a
+                      href={"https://www.google.com/maps?q=#{response.latitude},#{response.longitude}"}
+                      target="_blank"
+                      class="text-xs font-medium text-blue-700 hover:underline"
+                    >
+                      Google Maps
+                    </a>
+                  </div>
+                </div>
+              <% else %>
+                -
+              <% end %>
+            </td>
+
+            <td class="px-4 py-3 text-sm text-slate-700 break-all max-w-[220px]">
+              <%= response.device_fingerprint || "-" %>
+            </td>
+
+            <%= if @user_role == "admin" do %>
+              <td class="px-4 py-3 text-sm">
+                <%= if response.selfie_path && response.selfie_path != "" do %>
+                  <button
+                    type="button"
+                    onclick={"openImageModal('image-modal-#{response.id}')"}
+                  >
+                    <img
+                      src={~p"/admin/uploads/selfies/#{Path.basename(response.selfie_path)}"}
+                      alt="Selfie"
+                      class="h-14 w-14 rounded-lg object-cover border border-slate-200 shadow-sm"
+                    />
+                  </button>
+                <% else %>
+                  <span class="text-slate-400">No selfie</span>
+                <% end %>
+              </td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%= if @total_pages > 1 do %>
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+      <div class="text-sm text-slate-600">
+        Page <span class="font-semibold"><%= @page %></span> of <span class="font-semibold"><%= @total_pages %></span>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <%= if @page > 1 do %>
+          <a
+            href={
+              "/responses?page=#{@page - 1}&page_size=#{@page_size}&campaign_id=#{@filters.campaign_id || ""}&constituency_id=#{@filters.constituency_id || ""}&booth_name=#{@filters.booth_name || ""}&party=#{@filters.party || ""}&age_group=#{@filters.age_group || ""}&gender=#{@filters.gender || ""}"
+            }
+            class="rounded-xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300"
+          >
+            Previous
+          </a>
+        <% end %>
+
+        <%= if @page < @total_pages do %>
+          <a
+            href={
+              "/responses?page=#{@page + 1}&page_size=#{@page_size}&campaign_id=#{@filters.campaign_id || ""}&constituency_id=#{@filters.constituency_id || ""}&booth_name=#{@filters.booth_name || ""}&party=#{@filters.party || ""}&age_group=#{@filters.age_group || ""}&gender=#{@filters.gender || ""}"
+            }
+            class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+          >
+            Next
+          </a>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<%= for response <- @responses do %>
+  <div
+    id={"candidate-modal-#{response.id}"}
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 px-4 py-6"
+    onclick={"closeCandidateModal('candidate-modal-#{response.id}')"}
+  >
+    <div
+      class="w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
+      onclick="event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between">
+        <h3 class="text-xl font-bold text-slate-900">Response Details</h3>
+        <button
+          type="button"
+          class="rounded-lg px-3 py-1 text-slate-500 hover:bg-slate-100"
+          onclick={"closeCandidateModal('candidate-modal-#{response.id}')"}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div>
+          <%= if @user_role == "admin" do %>
+            <%= if response.selfie_path && response.selfie_path != "" do %>
+              <img
+                src={~p"/admin/uploads/selfies/#{Path.basename(response.selfie_path)}"}
+                alt="Selfie"
+                class="w-full rounded-2xl border border-slate-200 object-cover shadow-sm"
+              />
+            <% else %>
+              <div class="flex h-72 items-center justify-center rounded-2xl border border-dashed border-slate-300 text-slate-400">
+                No selfie available
+              </div>
+            <% end %>
+          <% else %>
+            <div class="flex h-72 items-center justify-center rounded-2xl border border-dashed border-slate-300 text-slate-400">
+              Selfie access restricted
+            </div>
+          <% end %>
+        </div>
+
+        <div class="space-y-3 text-sm sm:text-base">
+          <div class="border-b border-slate-100 pb-2">
+            <div class="text-xs uppercase tracking-wide text-slate-400">Voter</div>
+            <div class="text-2xl font-bold text-slate-900">Voter #<%= response.id %></div>
+          </div>
+
+          <div class="grid grid-cols-[130px_1fr] gap-y-2">
+            <div class="text-slate-500">Campaign:</div>
+            <div class="font-medium text-slate-800"><%= response.campaign_name %></div>
+
+            <div class="text-slate-500">Candidate:</div>
+            <div class="font-medium text-slate-800"><%= response.candidate_name %></div>
+
+            <div class="text-slate-500">Party:</div>
+            <div class="font-medium text-slate-800"><%= response.party_full_name || "-" %></div>
+
+            <div class="text-slate-500">Constituency:</div>
+            <div class="font-medium text-slate-800"><%= response.constituency_name %></div>
+
+            <div class="text-slate-500">Booth:</div>
+            <div class="font-medium text-slate-800"><%= response.booth_name || "-" %></div>
+
+            <div class="text-slate-500">Gender:</div>
+            <div class="font-medium text-slate-800"><%= response.gender || "-" %></div>
+
+            <div class="text-slate-500">Age Group:</div>
+            <div class="font-medium text-slate-800"><%= response.age_group || "-" %></div>
+
+            <div class="text-slate-500">Location:</div>
+            <div class="font-medium text-slate-800 break-all">
+              <%= response.latitude || "-" %>, <%= response.longitude || "-" %>
+            </div>
+
+            <div class="text-slate-500">Fingerprint:</div>
+            <div class="font-medium text-slate-800 break-all"><%= response.device_fingerprint || "-" %></div>
+
+            <div class="text-slate-500">Voted At:</div>
+            <div class="font-medium text-slate-800"><%= format_dt(response.voted_at) %></div>
+        
+            <div class="text-slate-500">Submitted At:</div>
+            <div class="font-medium text-slate-800"><%= format_dt(response.submitted_at) %></div>
+   
+          </div>
+
+          <%= if response.latitude && response.longitude do %>
+            <div class="pt-3 flex flex-wrap gap-2">
+              <a
+                href={"https://www.openstreetmap.org/?mlat=#{response.latitude}&mlon=#{response.longitude}#map=17/#{response.latitude}/#{response.longitude}"}
+                target="_blank"
+                class="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+              >
+                Open in OpenStreetMap
+              </a>
+
+              <a
+                href={"https://www.google.com/maps?q=#{response.latitude},#{response.longitude}"}
+                target="_blank"
+                class="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+              >
+                Open in Google Maps
+              </a>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%= if @user_role == "admin" and response.selfie_path && response.selfie_path != "" do %>
+    <div
+      id={"image-modal-#{response.id}"}
+      class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/80 px-4 py-6"
+      onclick={"closeImageModal('image-modal-#{response.id}')"}
+    >
+      <div class="relative max-w-4xl" onclick="event.stopPropagation()">
+        <button
+          type="button"
+          class="absolute right-2 top-2 rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-slate-800 shadow"
+          onclick={"closeImageModal('image-modal-#{response.id}')"}
+        >
+          ✕
+        </button>
+
+        <img
+          src={~p"/admin/uploads/selfies/#{Path.basename(response.selfie_path)}"}
+          alt="Selfie Full"
+          class="max-h-[85vh] rounded-2xl object-contain shadow-2xl"
+        />
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<script>
+  function openImageModal(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.remove("hidden");
+      el.classList.add("flex");
+    }
+  }
+
+  function closeImageModal(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add("hidden");
+      el.classList.remove("flex");
+    }
+  }
+
+  function openCandidateModal(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.remove("hidden");
+      el.classList.add("flex");
+    }
+  }
+
+  function closeCandidateModal(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add("hidden");
+      el.classList.remove("flex");
+    }
+  }
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      document.querySelectorAll('[id^="image-modal-"], [id^="candidate-modal-"]').forEach(function (el) {
+        el.classList.add("hidden");
+        el.classList.remove("flex");
+      });
+    }
+  });
+</script>

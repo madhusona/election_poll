@@ -1,0 +1,134 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="space-y-6">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <p class="text-sm text-gray-600">
+          Manage constituencies, candidates, booths, campaigns, responses, and live dashboards.
+        </p>
+      </div>
+
+      <div class="rounded-xl bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700">
+        Election control center
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <a href={~p"/constituencies"} class="rounded-2xl bg-white p-5 shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Constituencies</div>
+        <div class="mt-2 text-3xl font-bold text-blue-600"><%= @constituencies_count %></div>
+      </a>
+
+      <a href={~p"/candidates"} class="rounded-2xl bg-white p-5 shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Candidates</div>
+        <div class="mt-2 text-3xl font-bold text-green-600"><%= @candidates_count %></div>
+      </a>
+
+      <a href={~p"/booths"} class="rounded-2xl bg-white p-5 shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Booths</div>
+        <div class="mt-2 text-3xl font-bold text-amber-600"><%= @booths_count %></div>
+      </a>
+
+      <a href={~p"/campaigns"} class="rounded-2xl bg-white p-5 shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Campaigns</div>
+        <div class="mt-2 text-3xl font-bold text-purple-600"><%= @campaigns_count %></div>
+      </a>
+
+      <a href={~p"/responses"} class="rounded-2xl bg-white p-5 shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Responses</div>
+        <div class="mt-2 text-3xl font-bold text-rose-600"><%= @responses_count %></div>
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="rounded-2xl bg-white p-5 shadow lg:col-span-1">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900">Quick Actions</h2>
+
+        <div class="grid grid-cols-1 gap-3">
+          <a href={~p"/constituencies/new"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">
+            New Constituency
+          </a>
+          <a href={~p"/candidates/new"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">
+            New Candidate
+          </a>
+          <a href={~p"/booths/new"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">
+            New Booth
+          </a>
+          <a href={~p"/campaigns/new"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">
+            New Campaign
+          </a>
+          <a href={~p"/responses"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">
+            View Responses
+          </a>
+        </div>
+      </div>
+
+      <div class="rounded-2xl bg-white p-5 shadow lg:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">Recent Campaigns</h2>
+          <div class="text-sm text-gray-500">
+            Active Campaigns:
+            <span class="font-semibold text-green-600"><%= @active_campaigns_count %></span>
+          </div>
+        </div>
+
+        <%= if Enum.empty?(@recent_campaigns) do %>
+          <p class="text-sm text-gray-500">No campaigns found.</p>
+        <% else %>
+          <div class="overflow-auto rounded-xl border">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-4 py-3 text-left">Campaign</th>
+                  <th class="px-4 py-3 text-left">Slug</th>
+                  <th class="px-4 py-3 text-left">Status</th>
+                  <th class="px-4 py-3 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for campaign <- @recent_campaigns do %>
+                  <tr class="border-t">
+                    <td class="px-4 py-3 font-medium"><%= campaign.name %></td>
+                    <td class="px-4 py-3"><%= campaign.slug %></td>
+                    <td class="px-4 py-3">
+                      <span class={[
+                        "rounded-full px-3 py-1 text-xs font-semibold",
+                        if(campaign.is_active,
+                          do: "bg-green-100 text-green-700",
+                          else: "bg-gray-100 text-gray-600"
+                        )
+                      ]}>
+                        <%= if campaign.is_active, do: "Active", else: "Inactive" %>
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="flex flex-wrap gap-3">
+                        <a href={~p"/campaigns/#{campaign}"} class="text-gray-700 hover:text-blue-600">View</a>
+                        <a href={~p"/campaigns/#{campaign}/edit"} class="text-amber-700 hover:text-amber-900">Edit</a>
+                        <a href={~p"/campaigns/#{campaign}/dashboard"} class="font-semibold text-blue-600 hover:text-blue-800">
+                          Dashboard
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="rounded-2xl bg-white p-5 shadow">
+      <h2 class="mb-4 text-lg font-semibold text-gray-900">Admin Navigation</h2>
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <a href={~p"/constituencies"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">Constituencies</a>
+        <a href={~p"/candidates"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">Candidates</a>
+        <a href={~p"/booths"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">Booths</a>
+        <a href={~p"/campaigns"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">Campaigns</a>
+        <a href={~p"/responses"} class="rounded-xl border px-4 py-3 hover:bg-gray-50">Responses</a>
+      </div>
+    </div>
+  </div>
+</Layouts.app>

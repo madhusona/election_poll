@@ -1,0 +1,32 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    Listing Campaigns
+    <:actions>
+      <.button href={~p"/campaigns/new"}>
+        <.icon name="hero-plus" /> New Campaign
+      </.button>
+    </:actions>
+  </.header>
+
+  <.table id="campaigns" rows={@campaigns} row_click={&JS.navigate(~p"/campaigns/#{&1}")}>
+    <:col :let={campaign} label="Name">{campaign.name}</:col>
+    <:col :let={campaign} label="Slug">{campaign.slug}</:col>
+    <:col :let={campaign} label="Secret code">{campaign.secret_code}</:col>
+    <:col :let={campaign} label="Is active">{campaign.is_active}</:col>
+    <:col :let={campaign} label="Starts at">{campaign.starts_at}</:col>
+    <:col :let={campaign} label="Ends at">{campaign.ends_at}</:col>
+    <:action :let={campaign}>
+  <.link navigate={~p"/campaigns/#{campaign}"}>Show</.link>
+  <.link navigate={~p"/campaigns/#{campaign}/edit"} class="ml-2">Edit</.link>
+  <.link navigate={~p"/campaigns/#{campaign}/dashboard"} class="ml-2 text-blue-600 font-semibold">
+    Dashboard
+  </.link>
+</:action>
+    <:action :let={campaign}>
+      <.link href={~p"/campaigns/#{campaign}"} method="delete" data-confirm="Are you sure?">
+        Delete
+      </.link>
+    </:action>
+    
+  </.table>
+</Layouts.app>

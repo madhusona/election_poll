@@ -1,0 +1,14 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    New Campaign
+    <:subtitle>Use this form to manage campaign records in your database.</:subtitle>
+  </.header>
+
+  <.campaign_form
+    changeset={@changeset}
+    action={~p"/campaigns"}
+    return_to={~p"/campaigns"}
+    constituencies={@constituencies}
+    subadmins={@subadmins}
+  />
+</Layouts.app>

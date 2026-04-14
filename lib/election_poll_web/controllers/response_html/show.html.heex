@@ -1,0 +1,226 @@
+<div class="min-h-screen bg-slate-100 py-6 sm:py-8">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Response Details</h1>
+        <p class="mt-1 text-sm sm:text-base text-slate-500">
+          Full voting response information
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <.link
+          navigate={~p"/responses"}
+          class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800"
+        >
+          Back to Responses
+        </.link>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="lg:col-span-2 space-y-6">
+        <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">Voting Information</h2>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6">
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Response ID</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.id %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Campaign</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.campaign_name %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Constituency</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.constituency_name %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Booth</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.booth_name || "-" %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Candidate</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.candidate_name %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Party</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.party_full_name || "-" %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Gender</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.gender || "-" %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Age Group</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.age_group || "-" %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Vote At Time</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= format_dt(@response.voted_at) %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Server Submission Time</div>
+              <div class="mt-1 text-base sm:text-lg font-semibold text-slate-900">
+                <%= format_dt(@response.submitted_at) %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">Location & Device</h2>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 sm:p-6">
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Latitude</div>
+              <div class="mt-1 break-all text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.latitude || "-" %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Longitude</div>
+              <div class="mt-1 break-all text-base sm:text-lg font-semibold text-slate-900">
+                <%= @response.longitude || "-" %>
+              </div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 p-4 sm:col-span-2">
+              <div class="text-xs uppercase tracking-wide text-slate-500">Device Fingerprint</div>
+              <div class="mt-1 break-all text-sm sm:text-base font-semibold text-slate-900">
+                <%= @response.device_fingerprint || "-" %>
+              </div>
+            </div>
+
+            <%= if @response.latitude && @response.longitude do %>
+              <div class="rounded-2xl bg-slate-50 p-4 sm:col-span-2">
+                <div class="text-xs uppercase tracking-wide text-slate-500">Map Link</div>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <a
+                    href={"https://www.google.com/maps?q=#{@response.latitude},#{@response.longitude}"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    Open in Google Maps
+                  </a>
+
+                  <a
+                    href={"https://www.openstreetmap.org/?mlat=#{@response.latitude}&mlon=#{@response.longitude}#map=18/#{@response.latitude}/#{@response.longitude}"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                  >
+                    Open in OpenStreetMap
+                  </a>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">Selfie</h2>
+          </div>
+
+          <div class="p-5 sm:p-6">
+            <%= if @user_role == "admin" and @response.selfie_path && @response.selfie_path != "" do %>
+              <a
+                href={~p"/admin/uploads/selfies/#{Path.basename(@response.selfie_path)}"}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block"
+              >
+                <img
+                  src={~p"/admin/uploads/selfies/#{Path.basename(@response.selfie_path)}"}
+                  alt="Selfie"
+                  class="w-full max-h-[420px] rounded-2xl object-contain border border-slate-200 bg-slate-50"
+                />
+              </a>
+
+              <p class="mt-3 text-xs sm:text-sm text-slate-500">
+                Click the image to open full size.
+              </p>
+            <% else %>
+              <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-slate-400">
+                Selfie not available
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">Quick Summary</h2>
+          </div>
+
+          <div class="space-y-3 p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
+              <span class="text-sm text-slate-500">Candidate</span>
+              <span class="text-right text-sm font-semibold text-slate-900">
+                <%= @response.candidate_name %>
+              </span>
+            </div>
+
+            <div class="flex items-start justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
+              <span class="text-sm text-slate-500">Party</span>
+              <span class="text-right text-sm font-semibold text-slate-900">
+                <%= @response.party_full_name || "-" %>
+              </span>
+            </div>
+
+            <div class="flex items-start justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
+              <span class="text-sm text-slate-500">Vote At Time</span>
+              <span class="text-right text-sm font-semibold text-slate-900">
+                <%= format_dt(@response.voted_at) %>
+              </span>
+            </div>
+
+            <div class="flex items-start justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
+              <span class="text-sm text-slate-500">Server Submission Time</span>
+              <span class="text-right text-sm font-semibold text-slate-900">
+                <%= format_dt(@response.submitted_at) %>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

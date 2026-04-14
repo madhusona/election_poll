@@ -1,0 +1,51 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="space-y-6">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Candidates</h1>
+        <p class="text-sm text-gray-600">Manage candidates, parties, symbols, and colors.</p>
+      </div>
+
+      <div class="flex gap-2">
+        <a href={~p"/admin"} class="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50">
+          Back to Admin
+        </a>
+        <.button href={~p"/candidates/new"}>
+          <.icon name="hero-plus" /> New Candidate
+        </.button>
+      </div>
+    </div>
+
+    <div class="rounded-2xl bg-white p-5 shadow">
+      <.table id="candidates" rows={@candidates} row_click={&JS.navigate(~p"/candidates/#{&1}")}>
+        <:col :let={candidate} label="Candidate">{candidate.candidate_name}</:col>
+        <:col :let={candidate} label="Party">{candidate.party_full_name}</:col>
+        <:col :let={candidate} label="Abbreviation">{candidate.abbreviation}</:col>
+        <:col :let={candidate} label="Alliance">{candidate.alliance}</:col>
+        <:col :let={candidate} label="Color">
+          <div class="flex items-center gap-2">
+            <span
+              class="inline-block h-4 w-4 rounded-full border"
+              style={"background: #{candidate.color || "#ccc"}"}
+            ></span>
+            <span><%= candidate.color %></span>
+          </div>
+        </:col>
+        <:col :let={candidate} label="Status">
+          <%= if candidate.is_active, do: "Active", else: "Inactive" %>
+        </:col>
+        <:action :let={candidate}>
+          <.link navigate={~p"/candidates/#{candidate}"}>Show</.link>
+        </:action>
+        <:action :let={candidate}>
+          <.link navigate={~p"/candidates/#{candidate}/edit"}>Edit</.link>
+        </:action>
+        <:action :let={candidate}>
+          <.link href={~p"/candidates/#{candidate}"} method="delete" data-confirm="Are you sure?">
+            Delete
+          </.link>
+        </:action>
+      </.table>
+    </div>
+  </div>
+</Layouts.app>

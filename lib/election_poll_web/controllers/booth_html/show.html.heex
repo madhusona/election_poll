@@ -1,0 +1,14 @@
+<div class="max-w-3xl mx-auto p-6">
+  <h1 class="text-3xl font-bold mb-6">Booth Details</h1>
+
+  <div class="rounded-xl border bg-white p-6 space-y-3">
+    <div><strong>Name:</strong> <%= @booth.name %></div>
+    <div><strong>Code:</strong> <%= @booth.code %></div>
+    <div><strong>Status:</strong> <%= @booth.status %></div>
+    <div><strong>Constituency:</strong> <%= @booth.constituency && @booth.constituency.name %></div>
+  </div>
+
+  <div class="mt-6">
+    <a href={~p"/booths/#{@booth}/edit"} class="text-blue-600">Edit</a>
+  </div>
+</div>

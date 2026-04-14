@@ -1,0 +1,8 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    Edit Constituency {@constituency.id}
+    <:subtitle>Use this form to manage constituency records in your database.</:subtitle>
+  </.header>
+
+  <.constituency_form changeset={@changeset} action={~p"/constituencies/#{@constituency}"} return_to={~p"/constituencies"} />
+</Layouts.app>

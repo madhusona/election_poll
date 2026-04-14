@@ -1,0 +1,13 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    Edit Candidate {@candidate.id}
+    <:subtitle>Use this form to manage candidate records in your database.</:subtitle>
+  </.header>
+
+  <.candidate_form
+    changeset={@changeset}
+    action={~p"/candidates/#{@candidate}"}
+    return_to={~p"/candidates"}
+    constituencies={@constituencies}
+  />
+</Layouts.app>

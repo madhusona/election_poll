@@ -1,0 +1,129 @@
+<div class="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4 py-6 sm:px-6">
+  <div class="w-full max-w-xl bg-white text-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-8">
+    <div class="text-center mb-6 sm:mb-8">
+      <div class="mx-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-100 flex items-center justify-center text-3xl sm:text-4xl mb-4">
+        🛡
+      </div>
+
+      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 leading-tight">
+        BEFORE YOU VOTE
+      </h1>
+
+      <p class="text-slate-600 text-sm sm:text-base lg:text-lg leading-relaxed">
+        For election integrity, this EVM requires:
+      </p>
+    </div>
+
+    <div class="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+      <div class="rounded-2xl bg-slate-100 p-4 sm:p-5">
+        <div class="font-bold text-base sm:text-lg lg:text-xl">Camera Access</div>
+        <div class="text-slate-600 text-sm sm:text-base mt-1">
+          To capture voter photo
+        </div>
+      </div>
+
+      <div class="rounded-2xl bg-slate-100 p-4 sm:p-5">
+        <div class="font-bold text-base sm:text-lg lg:text-xl">Location Access</div>
+        <div class="text-slate-600 text-sm sm:text-base mt-1 leading-relaxed">
+          To verify voting from authorized polling booth
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center text-slate-500 text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed">
+      When prompted, please allow the required permissions.
+    </div>
+
+    <div class="space-y-3 sm:space-y-4">
+      <button
+        type="button"
+        id="allow-and-continue-btn"
+        class="w-full bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-3.5 sm:py-4 rounded-2xl text-base sm:text-xl lg:text-2xl font-bold active:scale-[0.99] transition"
+      >
+        ALLOW & CONTINUE TO VOTE
+      </button>
+
+      <a
+        href={~p"/poll/#{@campaign.slug}/demographic?constituency_id=#{@constituency.id}&booth_id=#{@booth_id}&booth_name=#{@booth_name}"}
+        class="block text-center text-slate-500 hover:text-slate-700 text-sm sm:text-base lg:text-lg py-2"
+      >
+        Go Back
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const button = document.getElementById("allow-and-continue-btn");
+
+    async function requestCameraPermission() {
+      let stream = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        return true;
+      } catch (err) {
+        console.error("Camera permission denied/error:", err);
+        return false;
+      } finally {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      }
+    }
+
+    function requestLocationPermission() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          resolve(false);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          function () {
+            resolve(true);
+          },
+          function (err) {
+            console.error("Location permission denied/error:", err);
+            resolve(false);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      });
+    }
+
+    button.addEventListener("click", async function () {
+      button.disabled = true;
+      button.innerText = "REQUESTING PERMISSIONS...";
+
+      const cameraOk = await requestCameraPermission();
+      const locationOk = await requestLocationPermission();
+
+      if (!cameraOk || !locationOk) {
+        const deniedUrl = new URL(window.location.origin + "<%= ~p"/poll/#{@campaign.slug}/permission-denied" %>");
+        deniedUrl.searchParams.set("constituency_id", "<%= @constituency.id %>");
+        deniedUrl.searchParams.set("booth_id", "<%= @booth_id %>");
+        deniedUrl.searchParams.set("booth_name", "<%= @booth_name %>");
+        deniedUrl.searchParams.set("gender", "<%= @gender %>");
+        deniedUrl.searchParams.set("age_group", "<%= @age_group %>");
+        window.location.href = deniedUrl.toString();
+        return;
+      }
+
+      const voteUrl = new URL(window.location.origin + "<%= ~p"/poll/#{@campaign.slug}/vote" %>");
+      voteUrl.searchParams.set("constituency_id", "<%= @constituency.id %>");
+      voteUrl.searchParams.set("booth_id", "<%= @booth_id %>");
+      voteUrl.searchParams.set("booth_name", "<%= @booth_name %>");
+      voteUrl.searchParams.set("gender", "<%= @gender %>");
+      voteUrl.searchParams.set("age_group", "<%= @age_group %>");
+      voteUrl.searchParams.set("camera_verified", "true");
+      voteUrl.searchParams.set("location_verified", "true");
+
+      window.location.href = voteUrl.toString();
+    });
+  });
+</script>

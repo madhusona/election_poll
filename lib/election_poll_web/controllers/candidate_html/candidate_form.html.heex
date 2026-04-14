@@ -1,0 +1,25 @@
+<.form :let={f} for={@changeset} action={@action}>
+  <.input field={f[:candidate_name]} type="text" label="Candidate name" />
+  <.input field={f[:party_full_name]} type="text" label="Party full name" />
+  <.input field={f[:abbreviation]} type="text" label="Abbreviation" />
+  <.input field={f[:alliance]} type="text" label="Alliance" />
+  <.input field={f[:display_order]} type="number" label="Display order" />
+  <.input field={f[:symbol_image]} type="text" label="Symbol image" />
+  <.input field={f[:symbol_name]} type="text" label="Symbol name" />
+  <.input field={f[:color]} type="text" label="Color" />
+
+  <.input
+    field={f[:constituency_id]}
+    type="select"
+    label="Constituency"
+    prompt="Select constituency"
+    options={Enum.map(@constituencies, fn constituency -> {constituency.name, constituency.id} end)}
+  />
+
+  <.input field={f[:is_active]} type="checkbox" label="Is active" />
+
+  <footer>
+    <.button variant="primary">Save Candidate</.button>
+    <.button :if={@return_to} href={@return_to}>Cancel</.button>
+  </footer>
+</.form>

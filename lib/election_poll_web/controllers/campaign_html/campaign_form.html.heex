@@ -1,0 +1,37 @@
+<.form :let={f} for={@changeset} action={@action}>
+  <.input field={f[:name]} type="text" label="Name" />
+  <.input field={f[:slug]} type="text" label="Slug" />
+  <.input field={f[:secret_code]} type="text" label="Secret code" />
+
+  <.input
+    field={f[:constituency_id]}
+    type="select"
+    label="Constituency"
+    prompt="Select constituency"
+    options={Enum.map(@constituencies, fn constituency -> {constituency.name, constituency.id} end)}
+  />
+
+  <.input field={f[:is_active]} type="checkbox" label="Is active" />
+  <.input field={f[:starts_at]} type="datetime-local" label="Starts at" />
+  <.input field={f[:ends_at]} type="datetime-local" label="Ends at" />
+
+  <div>
+    <label class="block text-sm font-medium mb-2">Assigned Subadmin</label>
+    <select name="campaign[assigned_user_id]" class="w-full rounded-xl border px-3 py-2">
+      <option value="">-- Select Subadmin --</option>
+      <%= for user <- @subadmins do %>
+        <option
+          value={user.id}
+          selected={to_string(f[:assigned_user_id].value) == to_string(user.id)}
+        >
+          <%= user.email %>
+        </option>
+      <% end %>
+    </select>
+  </div>
+
+  <footer>
+    <.button variant="primary">Save Campaign</.button>
+    <.button :if={@return_to} href={@return_to}>Cancel</.button>
+  </footer>
+</.form>

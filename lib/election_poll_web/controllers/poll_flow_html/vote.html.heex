@@ -1,0 +1,437 @@
+<div class="min-h-screen bg-[#0f2450] text-slate-900 px-2 sm:px-4 py-3 sm:py-4">
+  <div class="max-w-[1500px] mx-auto">
+    <.form
+      for={%{}}
+      id="vote-form"
+      action={~p"/poll/#{@campaign.slug}/submit_ajax"}
+      method="post"
+      enctype="multipart/form-data"
+      class="grid grid-cols-1 xl:grid-cols-[2.1fr_1fr] gap-4"
+    >
+      <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+      <input type="hidden" name="response[constituency_id]" value={@constituency.id} />
+      <input type="hidden" name="response[booth_id]" value={@booth_id} />
+      <input type="hidden" name="response[booth_name]" value={@booth_name} />
+      <input type="hidden" name="response[gender]" value={@gender} />
+      <input type="hidden" name="response[age_group]" value={@age_group} />
+      <input type="hidden" name="response[latitude]" id="response_latitude" value={@latitude} />
+      <input type="hidden" name="response[longitude]" id="response_longitude" value={@longitude} />
+      <input type="hidden" name="response[selfie_base64]" id="response_selfie_base64" />
+      <input type="hidden" name="response[voted_at]" id="response_voted_at" />
+      <input type="hidden" name="response[device_fingerprint]" id="response_device_fingerprint" />
+      <input type="hidden" name="response[candidate_id]" id="selected_candidate_id" />
+
+      <!-- LEFT: BALLOT UNIT -->
+<div class="bg-[#efefef] rounded-[18px] sm:rounded-[22px] border-[3px] border-[#3b3127] shadow-2xl p-2 sm:p-4 overflow-hidden">
+  <div class="rounded-[12px] overflow-hidden border border-black/20">
+    <div class="bg-[#2c2924] text-white text-center py-2.5 sm:py-4">
+      <div class="text-lg sm:text-3xl font-bold tracking-[0.08em] sm:tracking-[0.12em] uppercase">
+        Ballot Unit
+      </div>
+      <div class="text-[11px] sm:text-base text-slate-300 mt-1 px-2 leading-tight">
+        <%= @constituency.name %> - <%= @booth_name %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-[38px_minmax(0,1fr)_58px_42px_52px] sm:grid-cols-[80px_1.8fr_130px_80px_120px] bg-[#dddddd] border-b border-slate-400 text-center font-bold text-[10px] sm:text-base leading-tight">
+      <div class="py-2 sm:py-3 border-r border-slate-400">S.No</div>
+      <div class="py-2 sm:py-3 border-r border-slate-400 px-1">Name of Candidate</div>
+      <div class="py-2 sm:py-3 border-r border-slate-400">Symbol</div>
+      <div class="py-2 sm:py-3 border-r border-slate-400">LED</div>
+      <div class="py-2 sm:py-3">Button</div>
+    </div>
+
+    <%= for {candidate, index} <- Enum.with_index(@candidates, 1) do %>
+      <div
+        class="grid grid-cols-[38px_minmax(0,1fr)_58px_42px_52px] sm:grid-cols-[80px_1.8fr_130px_80px_120px] items-stretch min-h-[84px] sm:min-h-[170px] bg-[#f7f7f7] border-b border-slate-300"
+      >
+        <div class="h-full flex items-center justify-center border-r border-slate-300 text-sm sm:text-3xl font-bold">
+          <%= index %>
+        </div>
+
+        <div class="h-full border-r border-slate-300 px-1.5 sm:px-5 flex flex-col justify-center min-w-0">
+          <div class="text-[11px] sm:text-3xl font-bold leading-tight break-words">
+            <%= candidate.party_full_name %>
+          </div>
+          <div class="text-[10px] sm:text-xl text-slate-600 mt-1 leading-tight break-words">
+            <%= candidate.candidate_name %>
+          </div>
+        </div>
+
+        <div class="h-full border-r border-slate-300 flex items-center justify-center px-1">
+          <%= if candidate.symbol_image do %>
+            <img
+              src={"/symbols/#{candidate.symbol_image}"}
+              alt={candidate.symbol_name || candidate.candidate_name}
+              class="max-h-[28px] sm:max-h-[100px] max-w-[28px] sm:max-w-[100px] object-contain"
+            />
+          <% else %>
+            <div class="text-[9px] sm:text-base text-center leading-tight px-1 break-words">
+              <%= candidate.symbol_name %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="h-full border-r border-slate-300 flex items-center justify-center">
+          <div
+            id={"led-#{candidate.id}"}
+            class="h-3 w-3 sm:h-6 sm:w-6 rounded-full bg-[#5c0a0a] shadow-inner transition-all duration-200"
+          ></div>
+        </div>
+
+        <div class="h-full flex items-center justify-center">
+          <button
+            type="button"
+            class="vote-btn h-7 w-[40px] sm:h-12 sm:w-[92px] rounded-full bg-[#a9b7cc] shadow-inner border border-slate-400 transition active:scale-95"
+            data-candidate-id={candidate.id}
+            data-candidate-name={candidate.candidate_name}
+            data-party-name={candidate.party_full_name}
+            data-symbol-image={candidate.symbol_image || ""}
+          >
+          </button>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="hidden">
+    <video id="camera-preview" autoplay playsinline muted class="w-full max-w-md rounded bg-black"></video>
+    <canvas id="selfie-canvas" class="hidden"></canvas>
+    <button
+      type="button"
+      id="start-camera-btn"
+      class="mt-2 bg-black text-white px-3 py-2 rounded"
+    >
+      Restart Camera
+    </button>
+  </div>
+</div>
+
+      <!-- RIGHT / BELOW ON MOBILE -->
+      <div class="flex flex-col gap-4">
+        <!-- CONTROL UNIT -->
+        <div class="bg-[#efefef] rounded-[18px] sm:rounded-[22px] border-[3px] border-[#3b3127] shadow-2xl p-3 sm:p-6">
+          <div class="bg-[#2c2924] text-white text-center rounded-[10px] py-3 sm:py-4 text-lg sm:text-4xl font-bold tracking-[0.14em] uppercase">
+            Control Unit
+          </div>
+
+          <div class="mt-4 bg-[#111111] text-[#55f59a] rounded-xl px-3 py-3 sm:px-4 sm:py-4 flex items-center justify-between font-mono">
+            <div class="text-sm sm:text-2xl">TOTAL VOTES:</div>
+            <div id="total-votes-display" class="text-2xl sm:text-5xl font-bold">
+              <%= String.pad_leading(to_string(@total_votes || 0), 4, "0") %>
+            </div>
+          </div>
+
+          <div class="mt-4 flex items-center gap-3 text-slate-700">
+            <div id="status-dot" class="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-slate-500"></div>
+            <div id="status-text" class="font-mono text-sm sm:text-2xl">
+              READY FOR VOTE...
+            </div>
+          </div>
+
+          <button
+            type="button"
+            id="close-btn"
+            class="mt-5 w-full rounded-xl bg-[#a4acb9] text-slate-700 py-3 sm:py-4 text-lg sm:text-3xl font-bold tracking-[0.08em]"
+          >
+            CLOSE
+          </button>
+
+          <div class="text-center text-slate-500 mt-3 text-xs sm:text-xl font-mono leading-relaxed">
+            Press CLOSE to return to Booth Page
+          </div>
+
+          <div class="mt-5 bg-[#2c2924] text-white rounded-[10px] py-2.5 sm:py-3 text-center text-xs sm:text-2xl font-mono">
+            BHARAT ELECTRONICS LIMITED
+          </div>
+        </div>
+
+        <!-- VVPAT -->
+        <div class="bg-[#d8cfb9] rounded-[18px] sm:rounded-[22px] border-[3px] border-[#8a7755] shadow-2xl p-3 sm:p-6">
+          <div class="bg-[#2c2924] text-white text-center rounded-[10px] py-3 sm:py-4 text-lg sm:text-4xl font-bold tracking-[0.12em] uppercase">
+            VVPAT - Paper Trail
+          </div>
+
+          <div class="mt-4 bg-[#ecebe6] border-2 border-[#9aa3b2] rounded-2xl p-3 sm:p-6">
+            <div class="mx-auto max-w-[250px] sm:max-w-[320px] bg-[#f6f6f6] rounded-xl shadow p-3 sm:p-5 text-center min-h-[180px] sm:min-h-[260px]">
+              <div class="border-t-2 border-dashed border-slate-400 pt-3 sm:pt-4">
+                <div class="flex items-center justify-center gap-2 sm:gap-3">
+                  <img
+                    id="vvpat-symbol"
+                    src=""
+                    alt=""
+                    class="hidden h-8 w-8 sm:h-12 sm:w-12 object-contain"
+                  />
+                  <div>
+                    <div id="vvpat-party-name" class="text-lg sm:text-4xl font-bold leading-tight break-words">
+                      ---
+                    </div>
+                    <div id="vvpat-candidate-name" class="text-sm sm:text-2xl text-slate-600 mt-1 break-words">
+                      ---
+                    </div>
+                  </div>
+                </div>
+
+                <div id="vvpat-vote-id" class="mt-4 sm:mt-6 text-xs sm:text-xl text-slate-500 font-mono break-words">
+                  Vote ID: ----
+                </div>
+              </div>
+
+              <div class="border-t-2 border-dashed border-slate-400 mt-5 sm:mt-6 pt-4"></div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex justify-center">
+            <div id="verify-strip" class="bg-[#111111] text-[#f5c400] rounded-xl px-4 py-2.5 sm:px-5 sm:py-3 text-sm sm:text-3xl font-mono">
+              Verify slip: --
+            </div>
+          </div>
+
+          <div class="text-center text-slate-500 mt-3 text-xs sm:text-xl font-mono leading-relaxed">
+            Verify your vote on the paper slip above
+          </div>
+        </div>
+      </div>
+    </.form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("vote-form");
+
+  const latField = document.getElementById("response_latitude");
+  const lngField = document.getElementById("response_longitude");
+  const selfieBase64 = document.getElementById("response_selfie_base64");
+  const votedAtField = document.getElementById("response_voted_at");
+  const fingerprintField = document.getElementById("response_device_fingerprint");
+  const selectedCandidateField = document.getElementById("selected_candidate_id");
+
+  const video = document.getElementById("camera-preview");
+  const canvas = document.getElementById("selfie-canvas");
+  const startCameraBtn = document.getElementById("start-camera-btn");
+
+  const totalVotesDisplay = document.getElementById("total-votes-display");
+  const statusText = document.getElementById("status-text");
+  const statusDot = document.getElementById("status-dot");
+  const closeBtn = document.getElementById("close-btn");
+
+  const vvpatPartyName = document.getElementById("vvpat-party-name");
+  const vvpatCandidateName = document.getElementById("vvpat-candidate-name");
+  const vvpatVoteId = document.getElementById("vvpat-vote-id");
+  const vvpatSymbol = document.getElementById("vvpat-symbol");
+  const verifyStrip = document.getElementById("verify-strip");
+
+  const voteButtons = Array.from(document.querySelectorAll(".vote-btn"));
+
+  let locationReady = !!(latField.value && lngField.value);
+  let isCameraStarting = false;
+  let isLocationStarting = false;
+  let voteLocked = false;
+
+  async function startCamera() {
+    if (isCameraStarting || video.srcObject) return;
+
+    isCameraStarting = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" }
+      });
+      video.srcObject = stream;
+      await video.play();
+    } catch (err) {
+      console.log("Camera error", err);
+    } finally {
+      isCameraStarting = false;
+    }
+  }
+
+  function startLocation() {
+    if (isLocationStarting || locationReady) return;
+    if (!navigator.geolocation) return;
+
+    isLocationStarting = true;
+
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        latField.value = pos.coords.latitude;
+        lngField.value = pos.coords.longitude;
+        locationReady = true;
+        isLocationStarting = false;
+      },
+      function (err) {
+        console.log("Location error", err);
+        isLocationStarting = false;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  }
+
+  async function generateDeviceFingerprint() {
+    const raw = [
+      navigator.userAgent || "",
+      navigator.language || "",
+      screen.width || "",
+      screen.height || "",
+      screen.colorDepth || "",
+      new Date().getTimezoneOffset(),
+      navigator.platform || "",
+      navigator.hardwareConcurrency || ""
+    ].join("|");
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(raw);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  function resetAllLeds() {
+    document.querySelectorAll("[id^='led-']").forEach((led) => {
+      led.className = "h-4 w-4 sm:h-6 sm:w-6 rounded-full bg-[#5c0a0a] shadow-inner transition-all duration-200";
+    });
+  }
+
+  function activateLed(candidateId) {
+    const led = document.getElementById(`led-${candidateId}`);
+    if (!led) return;
+
+    led.className = "h-4 w-4 sm:h-6 sm:w-6 rounded-full bg-red-500 shadow-[0_0_18px_rgba(255,80,80,0.9)] transition-all duration-200";
+  }
+
+  function disableVoteButtons() {
+    voteButtons.forEach((btn) => {
+      btn.disabled = true;
+      btn.classList.add("opacity-70", "cursor-not-allowed");
+    });
+  }
+
+  function captureSelfie() {
+    if (!video.videoWidth || !video.videoHeight) {
+      return false;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0);
+    selfieBase64.value = canvas.toDataURL("image/jpeg", 0.85);
+    return true;
+  }
+
+  async function submitVoteAjax() {
+    const formData = new FormData(form);
+
+    const response = await fetch(form.action, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "x-csrf-token": document.querySelector("meta[name='csrf-token']")?.getAttribute("content") || ""
+      }
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "Failed to submit vote.");
+    }
+
+    return result;
+  }
+
+  async function startVerifyCountdown(seconds, redirectUrl) {
+    for (let i = seconds; i > 0; i--) {
+      verifyStrip.innerText = `Verify slip: ${i}s`;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    window.location.href = redirectUrl;
+  }
+
+  function incrementDisplayCount() {
+    const current = parseInt(totalVotesDisplay.innerText, 10) || 0;
+    totalVotesDisplay.innerText = String(current + 1).padStart(4, "0");
+  }
+
+  startCamera();
+  startLocation();
+
+  if (startCameraBtn) {
+    startCameraBtn.addEventListener("click", startCamera);
+  }
+
+  closeBtn.addEventListener("click", function () {
+    window.location.href = "<%= ~p"/poll/#{@campaign.slug}/booth?constituency_id=#{@constituency.id}" %>";
+  });
+
+  voteButtons.forEach((btn) => {
+    btn.addEventListener("click", async function () {
+      if (voteLocked) return;
+
+      if (!locationReady) {
+        alert("Please wait a moment for your location to be verified.");
+        startLocation();
+        return;
+      }
+
+      if (!video.videoWidth) {
+        alert("Please wait a moment for the camera to start.");
+        startCamera();
+        return;
+      }
+
+      voteLocked = true;
+      disableVoteButtons();
+
+      const candidateId = this.dataset.candidateId;
+      const candidateName = this.dataset.candidateName;
+      const partyName = this.dataset.partyName;
+      const symbolImage = this.dataset.symbolImage;
+
+      selectedCandidateField.value = candidateId;
+      votedAtField.value = new Date().toISOString();
+      fingerprintField.value = await generateDeviceFingerprint();
+
+      const selfieOk = captureSelfie();
+      if (!selfieOk) {
+        alert("Unable to capture photo. Please try again.");
+        voteLocked = false;
+        window.location.reload();
+        return;
+      }
+
+      resetAllLeds();
+      activateLed(candidateId);
+
+      statusText.innerText = "VOTE BEING CAST...";
+      statusDot.className = "h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-red-500 shadow-[0_0_12px_rgba(255,80,80,0.8)]";
+
+      try {
+        const result = await submitVoteAjax();
+
+        incrementDisplayCount();
+
+        vvpatPartyName.innerText = result.party_name || partyName || "---";
+        vvpatCandidateName.innerText = result.candidate_name || candidateName || "---";
+        vvpatVoteId.innerText = `Vote ID: ${result.vote_id}`;
+
+        if (symbolImage) {
+          vvpatSymbol.src = `/symbols/${symbolImage}`;
+          vvpatSymbol.classList.remove("hidden");
+        } else {
+          vvpatSymbol.classList.add("hidden");
+        }
+
+        await startVerifyCountdown(3, result.redirect_url);
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Failed to cast vote.");
+        window.location.reload();
+      }
+    });
+  });
+});
+</script>

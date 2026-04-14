@@ -1,0 +1,28 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    Listing States
+    <:actions>
+      <.button href={~p"/states/new"}>
+        <.icon name="hero-plus" /> New State
+      </.button>
+    </:actions>
+  </.header>
+
+  <.table id="states" rows={@states} row_click={&JS.navigate(~p"/states/#{&1}")}>
+    <:col :let={state} label="Name">{state.name}</:col>
+    <:col :let={state} label="Code">{state.code}</:col>
+    <:col :let={state} label="Display order">{state.display_order}</:col>
+    <:col :let={state} label="Is active">{state.is_active}</:col>
+    <:action :let={state}>
+      <div class="sr-only">
+        <.link navigate={~p"/states/#{state}"}>Show</.link>
+      </div>
+      <.link navigate={~p"/states/#{state}/edit"}>Edit</.link>
+    </:action>
+    <:action :let={state}>
+      <.link href={~p"/states/#{state}"} method="delete" data-confirm="Are you sure?">
+        Delete
+      </.link>
+    </:action>
+  </.table>
+</Layouts.app>

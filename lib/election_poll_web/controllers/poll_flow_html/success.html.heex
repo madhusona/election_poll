@@ -1,0 +1,81 @@
+<div class="min-h-screen bg-[#0f2450] flex items-center justify-center px-4 py-6">
+  <div class="w-full max-w-md bg-white text-slate-900 rounded-2xl shadow-2xl p-6 sm:p-8 text-center">
+
+    <!-- Success Icon -->
+    <div class="mx-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+      <span class="text-3xl sm:text-4xl text-green-600">✓</span>
+    </div>
+
+    <!-- Title -->
+    <h1 class="text-2xl sm:text-3xl font-bold mb-2">
+      Thank You!
+    </h1>
+
+    <!-- Message -->
+    <p class="text-slate-600 text-sm sm:text-base mb-2">
+      Your vote has been recorded successfully.
+    </p>
+
+    <p class="text-slate-500 text-xs sm:text-sm mb-5">
+      This is a simulation — no real vote is recorded.
+    </p>
+
+    <!-- Ink Indicator -->
+    <div class="bg-slate-100 rounded-xl p-3 sm:p-4 flex items-center justify-center gap-3 mb-5">
+      <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-900"></div>
+      <div class="text-sm sm:text-base font-medium">
+        Indelible Ink Applied
+      </div>
+    </div>
+
+    <!-- Countdown -->
+    <div id="countdown-text" class="text-slate-400 text-xs sm:text-sm mb-4">
+      Next voter in 3s...
+    </div>
+
+    <!-- Buttons -->
+    <div class="space-y-3">
+      
+      <!-- Next voter (Booth page) -->
+      <a
+        href={~p"/poll/#{@campaign.slug}/booth?constituency_id=#{@constituency.id}"}
+        class="block w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl text-base sm:text-lg font-bold"
+      >
+        Next Voter
+      </a>
+
+      <!-- Change constituency -->
+      <a
+        href={~p"/poll/#{@campaign.slug}"}
+        class="block w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 rounded-xl text-base sm:text-lg font-bold"
+      >
+        Change Constituency
+      </a>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-6 text-[11px] sm:text-xs text-slate-400">
+      Election Commission (Simulation)
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    let seconds = 3;
+    const text = document.getElementById("countdown-text");
+
+    const interval = setInterval(() => {
+      seconds--;
+
+      if (seconds > 0) {
+        text.innerText = `Next voter in ${seconds}s...`;
+      } else {
+        clearInterval(interval);
+        window.location.href = "<%= ~p"/poll/#{@campaign.slug}/booth?constituency_id=#{@constituency.id}" %>";
+      }
+    }, 1000);
+  });
+</script>

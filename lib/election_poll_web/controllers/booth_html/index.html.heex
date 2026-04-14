@@ -1,0 +1,57 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <div class="space-y-6">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Booths</h1>
+        <p class="text-sm text-gray-600">Manage booth master data by constituency.</p>
+      </div>
+
+      <div class="flex gap-2">
+        <a href={~p"/admin"} class="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50">
+          Back to Admin
+        </a>
+        <a href={~p"/booths/new"} class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+          New Booth
+        </a>
+      </div>
+    </div>
+
+    <div class="overflow-auto rounded-2xl border bg-white shadow">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-4 py-3 text-left">Name</th>
+            <th class="px-4 py-3 text-left">Code</th>
+            <th class="px-4 py-3 text-left">Constituency</th>
+            <th class="px-4 py-3 text-left">Status</th>
+            <th class="px-4 py-3 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for booth <- @booths do %>
+            <tr class="border-t">
+              <td class="px-4 py-3 font-medium"><%= booth.name %></td>
+              <td class="px-4 py-3"><%= booth.code %></td>
+              <td class="px-4 py-3"><%= booth.constituency && booth.constituency.name %></td>
+              <td class="px-4 py-3"><%= booth.status %></td>
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap gap-3">
+                  <a href={~p"/booths/#{booth}"} class="text-blue-600">Show</a>
+                  <a href={~p"/booths/#{booth}/edit"} class="text-amber-600">Edit</a>
+                  <.link
+                    href={~p"/booths/#{booth}"}
+                    method="delete"
+                    data-confirm="Are you sure?"
+                    class="text-red-600"
+                  >
+                    Delete
+                  </.link>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</Layouts.app>

@@ -1,0 +1,26 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    Candidate {@candidate.id}
+    <:subtitle>This is a candidate record from your database.</:subtitle>
+    <:actions>
+      <.button navigate={~p"/candidates"}>
+        <.icon name="hero-arrow-left" />
+      </.button>
+      <.button variant="primary" navigate={~p"/candidates/#{@candidate}/edit?return_to=show"}>
+        <.icon name="hero-pencil-square" /> Edit candidate
+      </.button>
+    </:actions>
+  </.header>
+
+  <.list>
+    <:item title="Candidate name">{@candidate.candidate_name}</:item>
+    <:item title="Party full name">{@candidate.party_full_name}</:item>
+    <:item title="Abbreviation">{@candidate.abbreviation}</:item>
+    <:item title="Alliance">{@candidate.alliance}</:item>
+    <:item title="Display order">{@candidate.display_order}</:item>
+    <:item title="Symbol image">{@candidate.symbol_image}</:item>
+    <:item title="Symbol name">{@candidate.symbol_name}</:item>
+    <:item title="Color">{@candidate.color}</:item>
+    <:item title="Is active">{@candidate.is_active}</:item>
+  </.list>
+</Layouts.app>

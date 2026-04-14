@@ -1,0 +1,68 @@
+<div class="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+  <div class="bg-white text-slate-900 rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+
+    <h1 class="text-2xl font-bold mb-4">Allow Access</h1>
+
+    <p class="mb-6 text-sm text-slate-600">
+      Camera and location access are required to proceed with voting.
+    </p>
+
+    <button
+      id="allow-btn"
+      class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold w-full"
+    >
+      Allow & Continue
+    </button>
+
+    <div id="status" class="mt-4 text-sm text-slate-600"></div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const btn = document.getElementById("allow-btn");
+  const status = document.getElementById("status");
+
+  btn.addEventListener("click", async function () {
+
+    status.textContent = "Requesting permissions...";
+
+    try {
+      // ✅ Request BOTH at same time
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false
+      });
+
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+
+      // ✅ Store location
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      localStorage.setItem("lat", lat);
+      localStorage.setItem("lng", lng);
+
+      // ✅ IMPORTANT: store camera permission flag
+      localStorage.setItem("camera_allowed", "true");
+
+      // ✅ STOP camera (important)
+      stream.getTracks().forEach(track => track.stop());
+
+      status.textContent = "Permission granted. Redirecting...";
+
+      // ✅ Redirect to vote
+      window.location.href = "<%= ~p"/poll/#{@campaign.slug}/vote?constituency_id=#{@constituency.id}&gender=#{@gender}&age_group=#{@age_group}" %>";
+
+    } catch (err) {
+      status.textContent = "Permission denied. Please allow access.";
+    }
+
+  });
+
+});
+</script>

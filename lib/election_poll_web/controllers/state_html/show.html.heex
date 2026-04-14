@@ -1,0 +1,21 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    State {@state.id}
+    <:subtitle>This is a state record from your database.</:subtitle>
+    <:actions>
+      <.button navigate={~p"/states"}>
+        <.icon name="hero-arrow-left" />
+      </.button>
+      <.button variant="primary" navigate={~p"/states/#{@state}/edit?return_to=show"}>
+        <.icon name="hero-pencil-square" /> Edit state
+      </.button>
+    </:actions>
+  </.header>
+
+  <.list>
+    <:item title="Name">{@state.name}</:item>
+    <:item title="Code">{@state.code}</:item>
+    <:item title="Display order">{@state.display_order}</:item>
+    <:item title="Is active">{@state.is_active}</:item>
+  </.list>
+</Layouts.app>

@@ -1,0 +1,14 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <.header>
+    Edit Campaign
+    <:subtitle>Use this form to edit campaign records in your database.</:subtitle>
+  </.header>
+
+  <.campaign_form
+    changeset={@changeset}
+    action={~p"/campaigns/#{@campaign}"}
+    return_to={~p"/campaigns"}
+    constituencies={@constituencies}
+    subadmins={@subadmins}
+  />
+</Layouts.app>

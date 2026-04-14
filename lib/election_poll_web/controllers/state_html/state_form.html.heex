@@ -1,0 +1,10 @@
+<.form :let={f} for={@changeset} action={@action}>
+  <.input field={f[:name]} type="text" label="Name" />
+  <.input field={f[:code]} type="text" label="Code" />
+  <.input field={f[:display_order]} type="number" label="Display order" />
+  <.input field={f[:is_active]} type="checkbox" label="Is active" />
+  <footer>
+    <.button variant="primary">Save State</.button>
+    <.button :if={@return_to} href={@return_to}>Cancel</.button>
+  </footer>
+</.form>

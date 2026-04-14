@@ -1,0 +1,82 @@
+<div class="min-h-screen bg-slate-950 text-white">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+    <div class="text-center mb-8 sm:mb-10">
+      <div class="inline-block px-3 sm:px-4 py-2 rounded-full bg-amber-700/30 text-amber-300 text-xs sm:text-sm tracking-wide">
+        PREPOLL VOTING
+      </div>
+
+      <h1 class="text-2xl sm:text-4xl lg:text-5xl font-bold mt-4 leading-tight break-words">
+        <%= @campaign.name %>
+      </h1>
+
+      <p class="text-slate-300 mt-2 text-sm sm:text-base">
+        Select your booth
+      </p>
+    </div>
+
+    <div class="mb-8 sm:mb-10">
+      <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+        <div class="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-slate-700 text-slate-300 font-semibold text-xs sm:text-sm">
+          1 Constituency
+        </div>
+
+        <div class="hidden sm:block w-10 lg:w-16 h-1 bg-slate-600 rounded"></div>
+
+        <div class="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-white text-slate-900 font-semibold text-xs sm:text-sm">
+          2 Booth
+        </div>
+
+        <div class="hidden sm:block w-10 lg:w-16 h-1 bg-slate-600 rounded"></div>
+
+        <div class="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-slate-700 text-slate-300 font-semibold text-xs sm:text-sm">
+          3 Demographic
+        </div>
+
+        <div class="hidden sm:block w-10 lg:w-16 h-1 bg-slate-600 rounded"></div>
+
+        <div class="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-slate-700 text-slate-300 font-semibold text-xs sm:text-sm">
+          4 Vote
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-2xl bg-white/10 border border-white/10 p-4 sm:p-6 mb-6 sm:mb-8">
+      <div class="text-xs sm:text-sm text-slate-400 mb-1">CONSTITUENCY</div>
+      <div class="text-xl sm:text-2xl lg:text-3xl font-bold break-words">
+        <%= @constituency.name %>
+      </div>
+    </div>
+
+    <%= if Enum.empty?(@booths) do %>
+      <div class="rounded-2xl bg-red-500/10 border border-red-500/20 p-4 sm:p-6 text-red-200 text-sm sm:text-base">
+        No active booths found for this constituency.
+      </div>
+    <% else %>
+      <div class="space-y-3 sm:space-y-4">
+        <%= for booth <- @booths do %>
+          <a
+            href={~p"/poll/#{@campaign.slug}/demographic?constituency_id=#{@constituency.id}&booth_id=#{booth.id}&booth_name=#{booth.name}"}
+            class="block rounded-2xl bg-white text-slate-900 p-4 sm:p-6 shadow hover:shadow-lg transition active:scale-[0.99]"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-xs sm:text-sm text-slate-500 mb-1">BOOTH</div>
+                <div class="text-lg sm:text-xl lg:text-2xl font-bold break-words">
+                  <%= booth.name %>
+                </div>
+
+                <%= if booth.code && booth.code != "" do %>
+                  <div class="text-xs sm:text-sm text-slate-500 mt-1 break-words">
+                    Code: <%= booth.code %>
+                  </div>
+                <% end %>
+              </div>
+
+              <div class="text-2xl sm:text-3xl text-slate-400 shrink-0">›</div>
+            </div>
+          </a>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

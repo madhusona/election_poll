@@ -1,0 +1,128 @@
+<div class="min-h-screen bg-[#0f2450] flex items-center justify-center px-4 py-6">
+  <div class="w-full max-w-xl bg-[#f8f8f8] border-[5px] border-red-500 rounded-[28px] shadow-2xl p-5 sm:p-8">
+    <div class="text-center">
+      <div class="mx-auto w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-red-100 flex items-center justify-center mb-5">
+        <span class="text-4xl sm:text-5xl text-red-600">⊘</span>
+      </div>
+
+      <h1 class="text-2xl sm:text-4xl font-bold tracking-[0.08em] uppercase text-slate-900">
+        Voting Not Allowed
+      </h1>
+
+      <p class="mt-3 text-slate-500 text-base sm:text-2xl">
+        Location access was denied.
+      </p>
+    </div>
+
+    <div class="mt-6 sm:mt-8 space-y-4">
+      <div class="bg-slate-100 rounded-2xl p-4 sm:p-6">
+        <div class="font-bold text-slate-800 text-base sm:text-2xl mb-2">
+          For Browser:
+        </div>
+        <ol class="text-slate-500 text-sm sm:text-xl space-y-2 list-decimal pl-5">
+          <li>Tap the lock/info icon in the address bar</li>
+          <li>Change Location to "Allow"</li>
+        </ol>
+      </div>
+
+      <div class="bg-slate-100 rounded-2xl p-4 sm:p-6">
+        <div class="font-bold text-slate-800 text-base sm:text-2xl mb-2">
+          For PWA / Installed App:
+        </div>
+        <ol class="text-slate-500 text-sm sm:text-xl space-y-2 list-decimal pl-5">
+          <li>Open your device <b>Settings</b></li>
+          <li>Go to <b>Apps</b> → find this app</li>
+          <li>Tap <b>Permissions</b></li>
+          <li>Enable <b>Location</b></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="mt-6 sm:mt-8 grid grid-cols-2 gap-3 sm:gap-4">
+      <button
+        type="button"
+        id="check-again-btn"
+        class="rounded-2xl bg-blue-600 hover:bg-blue-700 text-white py-3 sm:py-4 text-lg sm:text-2xl font-bold tracking-[0.08em] uppercase"
+      >
+        Check Again
+      </button>
+
+      <a
+        href={~p"/poll/#{@campaign.slug}/demographic?constituency_id=#{@constituency.id}&booth_id=#{@booth_id}&booth_name=#{@booth_name}"}
+        class="rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 sm:py-4 text-lg sm:text-2xl font-bold tracking-[0.08em] uppercase text-center"
+      >
+        Go Back
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const button = document.getElementById("check-again-btn");
+
+    async function requestCameraPermission() {
+      let stream = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        return true;
+      } catch (err) {
+        console.error("Camera permission denied/error:", err);
+        return false;
+      } finally {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      }
+    }
+
+    function requestLocationPermission() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          resolve(false);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          function () {
+            resolve(true);
+          },
+          function (err) {
+            console.error("Location permission denied/error:", err);
+            resolve(false);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      });
+    }
+
+    button.addEventListener("click", async function () {
+      button.disabled = true;
+      button.innerText = "CHECKING...";
+
+      const cameraOk = await requestCameraPermission();
+      const locationOk = await requestLocationPermission();
+
+      if (!cameraOk || !locationOk) {
+        button.disabled = false;
+        button.innerText = "Check Again";
+        return;
+      }
+
+      const voteUrl = new URL(window.location.origin + "<%= ~p"/poll/#{@campaign.slug}/vote" %>");
+      voteUrl.searchParams.set("constituency_id", "<%= @constituency.id %>");
+      voteUrl.searchParams.set("booth_id", "<%= @booth_id %>");
+      voteUrl.searchParams.set("booth_name", "<%= @booth_name %>");
+      voteUrl.searchParams.set("gender", "<%= @gender %>");
+      voteUrl.searchParams.set("age_group", "<%= @age_group %>");
+      voteUrl.searchParams.set("camera_verified", "true");
+      voteUrl.searchParams.set("location_verified", "true");
+
+      window.location.href = voteUrl.toString();
+    });
+  });
+</script>

@@ -1,0 +1,10 @@
+<div class="max-w-xl mx-auto p-6">
+  <h1 class="text-2xl font-bold mb-4">Polling submitted successfully</h1>
+
+  <%= if @campaign do %>
+    <p class="mb-2">Campaign: <%= @campaign.name %></p>
+    <p class="mb-2">Constituency: <%= @campaign.constituency.name %></p>
+  <% end %>
+
+  <p>Thank you for your response.</p>
+</div>

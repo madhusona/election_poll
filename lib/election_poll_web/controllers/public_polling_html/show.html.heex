@@ -1,0 +1,164 @@
+<div class="max-w-2xl mx-auto p-6">
+  <h1 class="text-2xl font-bold mb-2"><%= @campaign.name %></h1>
+  <p class="mb-6 text-lg font-medium">
+    Constituency: <%= @campaign.constituency.name %>
+  </p>
+
+  <%= if @error_message do %>
+    <div class="mb-4 rounded bg-red-100 p-3 text-red-700">
+      <%= @error_message %>
+    </div>
+  <% end %>
+
+  <.form
+    for={%{}}
+    as={:response}
+    action={~p"/c/#{@campaign.slug}/submit"}
+    method="post"
+    multipart
+    id="polling-form"
+  >
+    <div id="precheck-section">
+      <div class="mb-4">
+        <label class="block mb-1 font-medium">Gender</label>
+        <select name="response[gender]" id="response_gender" class="w-full border rounded p-2" required>
+          <option value="">Select Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="block mb-1 font-medium">Age Group</label>
+        <select name="response[age_group]" id="response_age_group" class="w-full border rounded p-2" required>
+          <option value="">Select Age Group</option>
+          <option value="18-20">18-20</option>
+          <option value="20-40">20-40</option>
+          <option value="40-60">40-60</option>
+          <option value="60+">60+</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="block mb-1 font-medium">Selfie</label>
+        <input
+          type="file"
+          name="response[selfie]"
+          id="response_selfie"
+          accept="image/*"
+          capture="user"
+          class="w-full border rounded p-2"
+          required
+        />
+      </div>
+
+      <input type="hidden" name="response[latitude]" id="response_latitude" />
+      <input type="hidden" name="response[longitude]" id="response_longitude" />
+
+      <div class="mb-4">
+        <button
+          type="button"
+          id="get-location-btn"
+          class="bg-gray-700 text-white px-4 py-2 rounded"
+        >
+          Get Location
+        </button>
+        <span id="location-status" class="ml-2 text-sm text-gray-600"></span>
+      </div>
+
+      <div class="mb-6">
+        <button
+          type="button"
+          id="proceed-btn"
+          class="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Proceed to Vote
+        </button>
+      </div>
+    </div>
+
+    <div id="candidate-section" class="hidden">
+      <h2 class="text-xl font-bold mb-4">Vote for your candidate</h2>
+
+      <%= for candidate <- @candidates do %>
+        <div class="border rounded p-4 mb-4">
+          <div class="font-semibold text-lg"><%= candidate.candidate_name %></div>
+          <div class="text-sm text-gray-700 mb-1"><%= candidate.party_full_name %></div>
+
+          <%= if candidate.symbol_name && candidate.symbol_name != "" do %>
+            <div class="text-sm text-gray-600 mb-3">Symbol: <%= candidate.symbol_name %></div>
+          <% end %>
+
+          <button
+            type="submit"
+            name="response[candidate_id]"
+            value={candidate.id}
+            class="bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Vote
+          </button>
+        </div>
+      <% end %>
+    </div>
+  </.form>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const genderField = document.getElementById("response_gender");
+    const ageGroupField = document.getElementById("response_age_group");
+    const selfieField = document.getElementById("response_selfie");
+    const latField = document.getElementById("response_latitude");
+    const lngField = document.getElementById("response_longitude");
+    const status = document.getElementById("location-status");
+    const getLocationBtn = document.getElementById("get-location-btn");
+    const proceedBtn = document.getElementById("proceed-btn");
+    const candidateSection = document.getElementById("candidate-section");
+
+    getLocationBtn.addEventListener("click", function () {
+      if (!navigator.geolocation) {
+        status.textContent = "Geolocation is not supported.";
+        return;
+      }
+
+      status.textContent = "Fetching location...";
+
+      navigator.geolocation.getCurrentPosition(
+        function (position) {
+          latField.value = position.coords.latitude;
+          lngField.value = position.coords.longitude;
+          status.textContent = "Location captured.";
+        },
+        function () {
+          status.textContent = "Location permission denied or unavailable.";
+        }
+      );
+    });
+
+    proceedBtn.addEventListener("click", function () {
+      if (!genderField.value) {
+        alert("Please select gender.");
+        return;
+      }
+
+      if (!ageGroupField.value) {
+        alert("Please select age group.");
+        return;
+      }
+
+      if (!selfieField.files || selfieField.files.length === 0) {
+        alert("Please capture or upload a selfie.");
+        return;
+      }
+
+      if (!latField.value || !lngField.value) {
+        alert("Please allow location and click Get Location.");
+        return;
+      }
+
+      candidateSection.classList.remove("hidden");
+      candidateSection.scrollIntoView({ behavior: "smooth" });
+    });
+  });
+</script>
