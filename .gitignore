@@ -35,3 +35,11 @@ election_poll-*.tar
 npm-debug.log
 /assets/node_modules/
 
+/_buil/
+/node_modules/
+/priv/static/
+/assets/node_modules/
+/.env
+*.log
+uploads/
+tmp/
