@@ -10,7 +10,7 @@ defmodule ElectionPollWeb.UserLive.Login do
           <.header>
             <p>Log in</p>
             <:subtitle>
-              Please enter your email and password to continue.
+              Please enter your email and password to continue..
             </:subtitle>
           </.header>
         </div>
