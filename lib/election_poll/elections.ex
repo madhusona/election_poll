@@ -37,6 +37,13 @@ defmodule ElectionPoll.Elections do
     |> Map.new()
   end
 
+  def list_active_campaigns do
+    Campaign
+    |> where([c], c.is_active == true)
+    |> preload(constituency: [:state])
+    |> Repo.all()
+  end
+
   def get_state!(%Scope{} = scope, id) do
     Repo.get_by!(State, id: id, user_id: scope.user.id)
   end
