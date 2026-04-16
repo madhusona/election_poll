@@ -10,8 +10,12 @@
       </h1>
 
       <p class="mt-2 text-slate-300 text-sm sm:text-lg">
-        தமிழ்நாடு சட்டமன்ற தேர்தல்
-      </p>
+  <%= if @campaign.constituency && @campaign.constituency.state do %>
+    <%= @campaign.constituency.state.name %> Election
+  <% else %>
+    Election
+  <% end %>
+</p>
     </div>
 
     <div class="mb-8 sm:mb-10">
@@ -48,30 +52,20 @@
         >
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
-              <div class="flex items-center gap-3 mb-2 flex-wrap">
-                <span class="text-slate-400 text-base sm:text-lg font-medium">
-                  <%= index %>.
-                </span>
+  <div class="flex items-center gap-3 mb-2 flex-wrap">
+    <span class="text-slate-400 text-base sm:text-lg font-medium">
+      <%= index %>.
+    </span>
 
-                <h3 class="text-xl sm:text-3xl font-bold break-words leading-tight">
-                  <%= constituency.name %>
-                </h3>
-              </div>
+    <h3 class="text-xl sm:text-3xl font-bold break-words leading-tight">
+      <%= constituency.name %>
+    </h3>
+  </div>
 
-              <%= if constituency.name == "Vaniyambadi" do %>
-                <p class="text-slate-500 text-base sm:text-xl mb-3 break-words">
-                  வாணியம்பாடி
-                </p>
-
-                <p class="text-slate-400 text-sm sm:text-lg">
-                  10 candidates + NOTA
-                </p>
-              <% else %>
-                <p class="text-slate-400 text-sm sm:text-lg">
-                  Select constituency
-                </p>
-              <% end %>
-            </div>
+  <p class="text-slate-400 text-sm sm:text-lg">
+    <%= Map.get(@candidate_counts, constituency.id, 0) %> candidates 
+  </p>
+</div>
 
             <div class="shrink-0 text-slate-300 text-3xl sm:text-4xl leading-none mt-1">
               ›

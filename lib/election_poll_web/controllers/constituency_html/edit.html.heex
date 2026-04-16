@@ -4,5 +4,10 @@
     <:subtitle>Use this form to manage constituency records in your database.</:subtitle>
   </.header>
 
-  <.constituency_form changeset={@changeset} action={~p"/constituencies/#{@constituency}"} return_to={~p"/constituencies"} />
+  <.constituency_form
+    changeset={@changeset}
+    action={~p"/constituencies/#{@constituency}"}
+    return_to={~p"/constituencies"}
+    states={@states}
+  />
 </Layouts.app>

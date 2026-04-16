@@ -22,7 +22,7 @@
       <input type="hidden" name="response[candidate_id]" id="selected_candidate_id" />
 
       <!-- LEFT: BALLOT UNIT -->
-<div class="bg-[#efefef] rounded-[18px] sm:rounded-[22px] border-[3px] border-[#3b3127] shadow-2xl p-2 sm:p-4 overflow-hidden">
+<div id="ballot-unit-section" class="bg-[#efefef] rounded-[18px] sm:rounded-[22px] border-[3px] border-[#3b3127] shadow-2xl p-2 sm:p-4 overflow-hidden">
   <div class="rounded-[12px] overflow-hidden border border-black/20">
     <div class="bg-[#2c2924] text-white text-center py-2.5 sm:py-4">
       <div class="text-lg sm:text-3xl font-bold tracking-[0.08em] sm:tracking-[0.12em] uppercase">
@@ -149,7 +149,7 @@
         </div>
 
         <!-- VVPAT -->
-        <div class="bg-[#d8cfb9] rounded-[18px] sm:rounded-[22px] border-[3px] border-[#8a7755] shadow-2xl p-3 sm:p-6">
+        <div id="vvpat-section" class="bg-[#d8cfb9] rounded-[18px] sm:rounded-[22px] border-[3px] border-[#8a7755] shadow-2xl p-3 sm:p-6">
           <div class="bg-[#2c2924] text-white text-center rounded-[10px] py-3 sm:py-4 text-lg sm:text-4xl font-bold tracking-[0.12em] uppercase">
             VVPAT - Paper Trail
           </div>
@@ -246,6 +246,20 @@ document.addEventListener("DOMContentLoaded", function () {
   let isCameraStarting = false;
   let isLocationStarting = false;
   let voteLocked = false;
+
+ function hideBallotUnitOnMobileAfterVote() {
+  if (window.innerWidth >= 640) return;
+
+  const ballotSection = document.getElementById("ballot-unit-section");
+  if (!ballotSection) return;
+
+  ballotSection.style.transition = "opacity 0.2s ease";
+  ballotSection.style.opacity = "0";
+
+  setTimeout(() => {
+    ballotSection.style.display = "none";
+  }, 200);
+}
 
   function updateStatus(message, type) {
     statusText.innerText = message;
@@ -540,6 +554,7 @@ verifyStrip.innerText = "Verify slip: --";
         const result = await submitVoteAjax();
 
         incrementDisplayCount();
+        hideBallotUnitOnMobileAfterVote();
 
         await showPrintedSlip({
   partyName: result.party_name || partyName || "---",

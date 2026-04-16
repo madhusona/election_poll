@@ -23,8 +23,18 @@ defmodule ElectionPoll.Elections do
     Phoenix.PubSub.broadcast(ElectionPoll.PubSub, "user:#{key}:states", message)
   end
 
-  def list_states(%Scope{} = scope) do
-    Repo.all_by(State, user_id: scope.user.id)
+  def list_states(%Scope{} = _scope) do
+    Repo.all(from s in State, where: s.is_active == true, order_by: [asc: s.name])
+  end
+
+  def count_active_candidates_by_constituency_ids(constituency_ids) do
+    from(c in Candidate,
+      where: c.constituency_id in ^constituency_ids and c.is_active == true,
+      group_by: c.constituency_id,
+      select: {c.constituency_id, count(c.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
   end
 
   def get_state!(%Scope{} = scope, id) do
@@ -201,6 +211,13 @@ defmodule ElectionPoll.Elections do
     end
   end
 
+  def list_active_constituencies_by_user_and_state(user_id, state_id) do
+    Constituency
+    |> where([c], c.user_id == ^user_id and c.state_id == ^state_id and c.is_active == true)
+    |> order_by([c], asc: c.display_order, asc: c.name)
+    |> Repo.all()
+  end
+
   def change_candidate(%Scope{} = scope, %Candidate{} = candidate, attrs \\ %{}) do
     true = candidate.user_id == scope.user.id
     Candidate.changeset(candidate, attrs, scope)
@@ -235,13 +252,13 @@ defmodule ElectionPoll.Elections do
   def get_active_campaign_by_slug(slug) do
     Campaign
     |> Repo.get_by(slug: slug, is_active: true)
-    |> Repo.preload(:constituency)
+    |> Repo.preload(constituency: [:state])
   end
 
   def get_active_campaign_with_constituency_by_slug(slug) do
     Campaign
     |> Repo.get_by(slug: slug, is_active: true)
-    |> Repo.preload(:constituency)
+    |> Repo.preload(constituency: [:state])
   end
 
   def create_campaign(%Scope{} = scope, attrs) do

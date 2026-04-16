@@ -2,7 +2,17 @@
   <.input field={f[:name]} type="text" label="Name" />
   <.input field={f[:code]} type="text" label="Code" />
   <.input field={f[:display_order]} type="number" label="Display order" />
+
+  <.input
+    field={f[:state_id]}
+    type="select"
+    label="State"
+    prompt="Select state"
+    options={Enum.map(@states, fn state -> {state.name, state.id} end)}
+  />
+
   <.input field={f[:is_active]} type="checkbox" label="Is active" />
+
   <footer>
     <.button variant="primary">Save Constituency</.button>
     <.button :if={@return_to} href={@return_to}>Cancel</.button>

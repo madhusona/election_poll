@@ -15,8 +15,12 @@ defmodule ElectionPollWeb.ConstituencyController do
         user_id: conn.assigns.current_scope.user.id
       })
 
-    render(conn, :new, changeset: changeset)
+    states = Elections.list_states(conn.assigns.current_scope)
+
+    render(conn, :new, changeset: changeset, states: states)
   end
+
+
 
   def create(conn, %{"constituency" => constituency_params}) do
     case Elections.create_constituency(conn.assigns.current_scope, constituency_params) do
@@ -26,7 +30,8 @@ defmodule ElectionPollWeb.ConstituencyController do
         |> redirect(to: ~p"/constituencies/#{constituency}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :new, changeset: changeset)
+        states = Elections.list_states(conn.assigns.current_scope)
+        render(conn, :new, changeset: changeset, states: states)
     end
   end
 
@@ -38,7 +43,8 @@ defmodule ElectionPollWeb.ConstituencyController do
   def edit(conn, %{"id" => id}) do
     constituency = Elections.get_constituency!(conn.assigns.current_scope, id)
     changeset = Elections.change_constituency(conn.assigns.current_scope, constituency)
-    render(conn, :edit, constituency: constituency, changeset: changeset)
+    states = Elections.list_states(conn.assigns.current_scope)
+    render(conn, :edit, constituency: constituency, changeset: changeset, states: states)
   end
 
   def update(conn, %{"id" => id, "constituency" => constituency_params}) do
@@ -51,7 +57,8 @@ defmodule ElectionPollWeb.ConstituencyController do
         |> redirect(to: ~p"/constituencies/#{constituency}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :edit, constituency: constituency, changeset: changeset)
+        states = Elections.list_states(conn.assigns.current_scope)
+        render(conn, :edit, constituency: constituency, changeset: changeset, states: states)
     end
   end
 

@@ -13,11 +13,21 @@ defmodule ElectionPollWeb.PollFlowController do
     campaign = Elections.get_active_campaign_with_constituency_by_slug(slug)
 
     if campaign do
-      constituencies = Elections.list_active_constituencies_by_user(campaign.user_id)
+      state_id = campaign.constituency && campaign.constituency.state_id
+
+    constituencies =
+      if state_id do
+        Elections.list_active_constituencies_by_user_and_state(campaign.user_id, state_id)
+      else
+        []
+      end
+    constituency_ids = Enum.map(constituencies, & &1.id)
+    candidate_counts = Elections.count_active_candidates_by_constituency_ids(constituency_ids)
 
       render(conn, :constituency,
         campaign: campaign,
-        constituencies: constituencies
+        constituencies: constituencies,
+        candidate_counts: candidate_counts
       )
     else
       conn
