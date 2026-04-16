@@ -3,6 +3,7 @@ defmodule ElectionPollWeb.PublicPollingController do
 
   alias ElectionPoll.Elections
   alias ElectionPoll.Polling
+  alias ElectionPoll.Uploads
 
   def show(conn, %{"slug" => slug}) do
     campaign = Elections.get_active_campaign_by_slug(slug)
@@ -116,13 +117,12 @@ defmodule ElectionPollWeb.PublicPollingController do
   defp save_selfie(%Plug.Upload{filename: filename, path: path}) do
     ext = Path.extname(filename)
     unique_name = "#{System.system_time(:millisecond)}#{ext}"
-    upload_dir = Path.join([:code.priv_dir(:election_poll), "static", "uploads", "selfies"])
-    File.mkdir_p!(upload_dir)
 
-    dest = Path.join(upload_dir, unique_name)
+    Uploads.ensure_upload_dir!()
+    dest = Uploads.file_path(unique_name)
 
     case File.cp(path, dest) do
-      :ok -> {:ok, "/uploads/selfies/#{unique_name}"}
+      :ok -> {:ok, unique_name}
       {:error, _} -> {:error, "Unable to save selfie."}
     end
   end

@@ -227,12 +227,15 @@
       const { cameraGranted, locationGranted } = await checkPermissionStatus();
 
       if (cameraGranted && locationGranted) {
-        window.location.href =
-          "<%= ~p"/poll/#{@campaign.slug}/vote" %>?" + commonParams.toString();
-      } else {
-        window.location.href =
-          "<%= ~p"/poll/#{@campaign.slug}/access" %>?" + commonParams.toString();
-      }
+  commonParams.set("camera_verified", "true");
+  commonParams.set("location_verified", "true");
+
+  window.location.href =
+    "<%= ~p"/poll/#{@campaign.slug}/vote" %>?" + commonParams.toString();
+} else {
+  window.location.href =
+    "<%= ~p"/poll/#{@campaign.slug}/access" %>?" + commonParams.toString();
+}
     });
   });
 </script>

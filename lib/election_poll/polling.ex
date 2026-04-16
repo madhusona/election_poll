@@ -102,6 +102,18 @@ defmodule ElectionPoll.Polling do
     |> Repo.all()
   end
 
+  def update_response(%Response{} = response, attrs) do
+    response
+    |> Response.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def update_response_selfie(%Response{} = response, selfie_path) do
+    response
+    |> Ecto.Changeset.change(%{selfie_path: selfie_path})
+    |> Repo.update()
+  end
+
   defp apply_filters(query, filters) do
     query
     |> maybe_filter(:gender, filters[:gender])

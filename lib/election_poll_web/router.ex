@@ -4,7 +4,7 @@ defmodule ElectionPollWeb.Router do
   import ElectionPollWeb.UserAuth
 
   pipeline :browser do
-    plug :accepts, ["html"]
+    plug :accepts, ["html", "json"]
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, html: {ElectionPollWeb.Layouts, :root}
@@ -45,7 +45,10 @@ defmodule ElectionPollWeb.Router do
     get "/poll/:slug/success", PollFlowController, :success
     get "/poll/:slug/access", PollFlowController, :access
     post "/poll/:slug/submit_ajax", PollFlowController, :submit_ajax
+    
   end
+
+  
 
   
 
@@ -115,5 +118,6 @@ defmodule ElectionPollWeb.Router do
     
     get "/responses/export", ResponseController, :export_csv
     get "/admin/uploads/selfies/:filename", SecureUploadController, :show_selfie
+    get "/admin/selfies/:filename", SelfieController, :show
   end
 end

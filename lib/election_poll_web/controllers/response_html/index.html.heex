@@ -204,7 +204,7 @@
                   onclick={"openImageModal('image-modal-#{response.id}')"}
                 >
                   <img
-                    src={~p"/admin/uploads/selfies/#{Path.basename(response.selfie_path)}"}
+                    src={ElectionPoll.Uploads.admin_url(response.selfie_path)}
                     alt="Selfie"
                     class="h-20 w-20 rounded-xl object-cover border border-slate-200 shadow-sm"
                   />
@@ -304,7 +304,7 @@
                     onclick={"openImageModal('image-modal-#{response.id}')"}
                   >
                     <img
-                      src={~p"/admin/uploads/selfies/#{Path.basename(response.selfie_path)}"}
+                      src={ElectionPoll.Uploads.admin_url(response.selfie_path)}
                       alt="Selfie"
                       class="h-14 w-14 rounded-lg object-cover border border-slate-200 shadow-sm"
                     />
@@ -379,7 +379,7 @@
           <%= if @user_role == "admin" do %>
             <%= if response.selfie_path && response.selfie_path != "" do %>
               <img
-                src={~p"/admin/uploads/selfies/#{Path.basename(response.selfie_path)}"}
+                 src={ElectionPoll.Uploads.admin_url(response.selfie_path)}
                 alt="Selfie"
                 class="w-full rounded-2xl border border-slate-200 object-cover shadow-sm"
               />
@@ -479,7 +479,7 @@
         </button>
 
         <img
-          src={~p"/admin/uploads/selfies/#{Path.basename(response.selfie_path)}"}
+          src={ElectionPoll.Uploads.admin_url(response.selfie_path)}
           alt="Selfie Full"
           class="max-h-[85vh] rounded-2xl object-contain shadow-2xl"
         />

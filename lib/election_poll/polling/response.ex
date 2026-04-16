@@ -43,7 +43,6 @@ defmodule ElectionPoll.Polling.Response do
     |> validate_required([
       :gender,
       :age_group,
-      :selfie_path,
       :latitude,
       :longitude,
       :submitted_at,
