@@ -37,6 +37,23 @@ defmodule ElectionPoll.Elections do
     |> Map.new()
   end
 
+  def list_active_states_with_campaigns do
+    from(s in State,
+      join: cst in Constituency, on: cst.state_id == s.id,
+      join: camp in Campaign, on: camp.constituency_id == cst.id,
+      where: s.is_active == true and cst.is_active == true and camp.is_active == true,
+      distinct: s.id,
+      order_by: [asc: s.name],
+      select: %{
+        state_id: s.id,
+        state_name: s.name,
+        campaign_slug: camp.slug,
+        campaign_name: camp.name
+      }
+    )
+    |> Repo.all()
+  end
+
   def list_active_campaigns do
     Campaign
     |> where([c], c.is_active == true)

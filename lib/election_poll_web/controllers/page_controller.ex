@@ -2,7 +2,7 @@ defmodule ElectionPollWeb.PageController do
   use ElectionPollWeb, :controller
   alias ElectionPoll.Elections
   def home(conn, _params) do
-    campaigns = Elections.list_active_campaigns()
-    render(conn, :home, campaigns: campaigns)
+    states = Elections.list_active_states_with_campaigns()
+    render(conn, :home, states: states)
   end
 end
