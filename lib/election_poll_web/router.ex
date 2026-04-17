@@ -114,9 +114,10 @@ defmodule ElectionPollWeb.Router do
     resources "/candidates", CandidateController
     resources "/campaigns", CampaignController
     resources "/booths", BoothController
+    get "/responses/export", ResponseController, :export_csv
     resources "/responses", ResponseController, only: [:index, :show]
     
-    get "/responses/export", ResponseController, :export_csv
+   
     get "/admin/uploads/selfies/:filename", SecureUploadController, :show_selfie
     get "/admin/selfies/:filename", SelfieController, :show
   end
