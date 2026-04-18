@@ -45,26 +45,9 @@ defmodule ElectionPollWeb.Router do
     get "/poll/:slug/success", PollFlowController, :success
     get "/poll/:slug/access", PollFlowController, :access
     post "/poll/:slug/submit_ajax", PollFlowController, :submit_ajax
-    
   end
 
-  
-
-  
-
-  
-  # Other scopes may use custom stacks.
-  # scope "/api", ElectionPollWeb do
-  #   pipe_through :api
-  # end
-
-  # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:election_poll, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do
@@ -75,8 +58,6 @@ defmodule ElectionPollWeb.Router do
     end
   end
 
-  ## Authentication routes
-
   scope "/", ElectionPollWeb do
     pipe_through [:browser, :require_authenticated_user]
 
@@ -84,10 +65,16 @@ defmodule ElectionPollWeb.Router do
       on_mount: [{ElectionPollWeb.UserAuth, :require_authenticated}] do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
-      live "/campaigns/:id/dashboard", CampaignDashboardLive, :show
+      live "/analytics", CampaignDashboardLive, :show
     end
-    #get "/campaigns/:id/dashboard", CampaignDashboardController, :index
+
     post "/users/update-password", UserSessionController, :update_password
+
+    get "/responses/export", ResponseController, :export_csv
+    resources "/responses", ResponseController, only: [:index, :show]
+
+    get "/admin/uploads/selfies/:filename", SecureUploadController, :show_selfie
+    get "/admin/selfies/:filename", SelfieController, :show
   end
 
   scope "/", ElectionPollWeb do
@@ -108,17 +95,13 @@ defmodule ElectionPollWeb.Router do
     pipe_through [:browser, :admin]
 
     get "/admin", AdminController, :index
+    get "/admin/user-restrictions", AdminRestrictionController, :index
+    post "/admin/user-restrictions/:user_id", AdminRestrictionController, :save
 
     resources "/states", StateController
     resources "/constituencies", ConstituencyController
     resources "/candidates", CandidateController
     resources "/campaigns", CampaignController
     resources "/booths", BoothController
-    get "/responses/export", ResponseController, :export_csv
-    resources "/responses", ResponseController, only: [:index, :show]
-    
-   
-    get "/admin/uploads/selfies/:filename", SecureUploadController, :show_selfie
-    get "/admin/selfies/:filename", SelfieController, :show
   end
 end

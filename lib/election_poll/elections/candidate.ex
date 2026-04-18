@@ -21,7 +21,8 @@ defmodule ElectionPoll.Elections.Candidate do
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(candidate, attrs, %Scope{} = scope) do
+  @doc false
+  def changeset(candidate, attrs) do
     candidate
     |> cast(attrs, [
       :candidate_name,
@@ -33,7 +34,8 @@ defmodule ElectionPoll.Elections.Candidate do
       :symbol_name,
       :color,
       :is_active,
-      :constituency_id
+      :constituency_id,
+      :user_id
     ])
     |> validate_required([
       :candidate_name,
@@ -45,6 +47,13 @@ defmodule ElectionPoll.Elections.Candidate do
       :color,
       :constituency_id
     ])
+    |> assoc_constraint(:constituency)
+  end
+
+  @doc false
+  def changeset(candidate, attrs, %Scope{} = scope) do
+    candidate
+    |> changeset(attrs)
     |> put_change(:user_id, scope.user.id)
   end
 end

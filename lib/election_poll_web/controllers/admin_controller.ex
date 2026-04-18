@@ -4,50 +4,22 @@ defmodule ElectionPollWeb.AdminController do
   import Ecto.Query
 
   alias ElectionPoll.Repo
-  alias ElectionPoll.Elections
-  alias ElectionPoll.Elections.{Campaign, Booth, Constituency}
+  alias ElectionPoll.Elections.{Campaign, Booth, Constituency, Candidate}
   alias ElectionPoll.Polling.Response
 
   def index(conn, _params) do
-    scope = conn.assigns.current_scope
-    user_id = scope.user.id
-
-    constituencies_count =
-      Elections.list_constituencies(scope)
-      |> length()
-
-    candidates_count =
-      Elections.list_candidates(scope)
-      |> length()
-
     campaigns =
-      Elections.list_campaigns(scope)
+      from(c in Campaign, order_by: [desc: c.inserted_at])
+      |> Repo.all()
+
+    constituencies_count = Repo.aggregate(Constituency, :count, :id)
+    candidates_count = Repo.aggregate(Candidate, :count, :id)
+    booths_count = Repo.aggregate(Booth, :count, :id)
+    responses_count = Repo.aggregate(Response, :count, :id)
 
     campaigns_count = length(campaigns)
-
-    booths_count =
-      from(b in Booth,
-        join: con in Constituency, on: con.id == b.constituency_id,
-        where: con.user_id == ^user_id,
-        select: count(b.id)
-      )
-      |> Repo.one()
-
-    responses_count =
-      from(r in Response,
-        join: cam in Campaign, on: cam.id == r.campaign_id,
-        where: cam.user_id == ^user_id,
-        select: count(r.id)
-      )
-      |> Repo.one()
-
-    active_campaigns_count =
-      Enum.count(campaigns, & &1.is_active)
-
-    recent_campaigns =
-      campaigns
-      |> Enum.sort_by(& &1.inserted_at, {:desc, DateTime})
-      |> Enum.take(6)
+    active_campaigns_count = Enum.count(campaigns, & &1.is_active)
+    recent_campaigns = Enum.take(campaigns, 6)
 
     render(conn, :index,
       constituencies_count: constituencies_count,

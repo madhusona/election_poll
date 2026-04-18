@@ -1,0 +1,299 @@
+
+<div class="min-h-screen bg-slate-50">
+  <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div class="mb-6 flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Analytics Dashboard</h1>
+        <p class="mt-1 text-sm text-slate-600">
+          View response analytics based on your access scope and selected filters.
+        </p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-12">
+      <div class="xl:col-span-3">
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-200 px-4 py-3">
+            <h2 class="text-lg font-semibold text-slate-900">Filters</h2>
+          </div>
+
+          <div class="p-4">
+            <.form for={%{}} as={:filters} phx-change="apply_filters" phx-submit="apply_filters" class="space-y-4">
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">State</label>
+                <select name="filters[state_id]" class="w-full rounded-xl border border-slate-300 px-3 py-2">
+                  <option value="">All States</option>
+                  <%= for item <- @allowed_states do %>
+                    <option value={item.id} selected={to_string(@filters["state_id"]) == to_string(item.id)}>
+                      <%= item.name %>
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Constituency</label>
+                <select name="filters[constituency_id]" class="w-full rounded-xl border border-slate-300 px-3 py-2">
+                  <option value="">All Constituencies</option>
+                  <%= for item <- @allowed_constituencies do %>
+                    <option value={item.id} selected={to_string(@filters["constituency_id"]) == to_string(item.id)}>
+                      <%= item.name %>
+                    </option>
+                  <% end %>
+                </select>
+              </div>
+
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Gender</label>
+                <select name="filters[gender]" class="w-full rounded-xl border border-slate-300 px-3 py-2">
+                  <option value="">All Genders</option>
+                  <option value="Male" selected={@filters["gender"] == "Male"}>Male</option>
+                  <option value="Female" selected={@filters["gender"] == "Female"}>Female</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Age Group</label>
+                <select name="filters[age_group]" class="w-full rounded-xl border border-slate-300 px-3 py-2">
+                  <option value="">All Age Groups</option>
+                  <option value="20-40" selected={@filters["age_group"] == "20-40"}>20-40</option>
+                  <option value="40-60" selected={@filters["age_group"] == "40-60"}>40-60</option>
+                  <option value="60+" selected={@filters["age_group"] == "60+"}>60+</option>
+                </select>
+              </div>
+
+              <div class="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  Apply
+                </button>
+
+                <button
+                  type="button"
+                  phx-click="reset_filters"
+                  class="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Reset
+                </button>
+              </div>
+            </.form>
+          </div>
+        </div>
+
+        <div class="mt-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-200 px-4 py-3">
+            <h2 class="text-lg font-semibold text-slate-900">Summary</h2>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm text-slate-500">Total Responses</div>
+              <div class="mt-2 text-3xl font-bold text-slate-900"><%= @summary.total_responses %></div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm text-slate-500">Visible Candidates</div>
+              <div class="mt-2 text-3xl font-bold text-slate-900"><%= @summary.total_candidates %></div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm text-slate-500">Visible Parties</div>
+              <div class="mt-2 text-3xl font-bold text-slate-900"><%= @summary.total_parties %></div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm text-slate-500">Leading Candidate</div>
+              <div class="mt-2 text-base font-semibold text-slate-900">
+                <%= @summary.leading_candidate || "—" %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="xl:col-span-9">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
+            <div class="mb-4">
+              <h3 class="text-lg font-semibold text-slate-900">Candidate Vote Distribution</h3>
+              <p class="text-sm text-slate-500">All visible candidates and their vote counts.</p>
+            </div>
+
+            <div
+              id="candidate-bar-chart"
+              phx-hook="CandidateBarChart"
+              phx-update="ignore"
+              data-categories={Jason.encode!(@candidate_chart.categories)}
+              data-series={Jason.encode!(@candidate_chart.series)}
+            >
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="mb-4">
+              <h3 class="text-lg font-semibold text-slate-900">Gender Distribution</h3>
+              <p class="text-sm text-slate-500">Vote split by gender.</p>
+            </div>
+
+            <div
+              id="gender-donut-chart"
+              phx-hook="GenderDonutChart"
+              phx-update="ignore"
+              data-labels={Jason.encode!(@gender_chart.labels)}
+              data-series={Jason.encode!(@gender_chart.series)}
+            >
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="mb-4">
+              <h3 class="text-lg font-semibold text-slate-900">Age Group Distribution</h3>
+              <p class="text-sm text-slate-500">Vote split by age group.</p>
+            </div>
+
+            <div
+              id="age-donut-chart"
+              phx-hook="AgeDonutChart"
+              phx-update="ignore"
+              data-labels={Jason.encode!(@age_chart.labels)}
+              data-series={Jason.encode!(@age_chart.series)}
+            >
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="mb-4">
+              <h3 class="text-lg font-semibold text-slate-900">Party Distribution</h3>
+              <p class="text-sm text-slate-500">Vote share across parties.</p>
+            </div>
+
+            <div
+              id="party-donut-chart"
+              phx-hook="PartyDonutChart"
+              phx-update="ignore"
+              data-labels={Jason.encode!(@party_chart.labels)}
+              data-series={Jason.encode!(@party_chart.series)}
+            >
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="mb-4">
+              <h3 class="text-lg font-semibold text-slate-900">Vote Trend</h3>
+              <p class="text-sm text-slate-500">Current total responses.</p>
+            </div>
+
+            <div
+              id="trend-line-chart"
+              phx-hook="TrendLineChart"
+              phx-update="ignore"
+              data-categories={Jason.encode!(@trend_chart.categories)}
+              data-series={Jason.encode!(@trend_chart.series)}
+            >
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-200 px-4 py-3">
+            <h2 class="text-lg font-semibold text-slate-900">Candidate-wise Vote Count</h2>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Candidate
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Party
+                  </th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Votes
+                  </th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Percentage
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-slate-100 bg-white">
+                <%= for row <- @candidate_rows do %>
+                  <tr>
+                    <td class="px-4 py-3 text-sm font-medium text-slate-900">
+                      <%= row.candidate_name %>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-slate-600">
+                      <%= row.party_name %>
+                    </td>
+                    <td class="px-4 py-3 text-right text-sm font-semibold text-slate-900">
+                      <%= row.vote_count %>
+                    </td>
+                    <td class="px-4 py-3 text-right text-sm text-slate-600">
+                      <%= row.vote_percent %>%
+                    </td>
+                  </tr>
+                <% end %>
+
+                <%= if @candidate_rows == [] do %>
+                  <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500">
+                      No candidate data found for the selected filters.
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-200 px-4 py-3">
+              <h2 class="text-lg font-semibold text-slate-900">State-wise Responses</h2>
+            </div>
+
+            <div class="p-4">
+              <%= if @state_stats == [] do %>
+                <div class="text-sm text-slate-500">No state data available.</div>
+              <% else %>
+                <div class="space-y-3">
+                  <%= for item <- @state_stats do %>
+                    <div class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                      <div class="text-sm font-medium text-slate-800"><%= item.state_name %></div>
+                      <div class="text-sm font-semibold text-slate-900"><%= item.count %></div>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-200 px-4 py-3">
+              <h2 class="text-lg font-semibold text-slate-900">Constituency-wise Responses</h2>
+            </div>
+
+            <div class="p-4">
+              <%= if @constituency_stats == [] do %>
+                <div class="text-sm text-slate-500">No constituency data available.</div>
+              <% else %>
+                <div class="space-y-3">
+                  <%= for item <- @constituency_stats do %>
+                    <div class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                      <div class="text-sm font-medium text-slate-800"><%= item.constituency_name %></div>
+                      <div class="text-sm font-semibold text-slate-900"><%= item.count %></div>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

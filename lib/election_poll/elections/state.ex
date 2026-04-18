@@ -13,10 +13,16 @@ defmodule ElectionPoll.Elections.State do
   end
 
   @doc false
+  def changeset(state, attrs) do
+    state
+    |> cast(attrs, [:name, :code, :display_order, :is_active, :user_id])
+    |> validate_required([:name, :code, :display_order, :is_active])
+  end
+
+  @doc false
   def changeset(state, attrs, user_scope) do
     state
-    |> cast(attrs, [:name, :code, :display_order, :is_active])
-    |> validate_required([:name, :code, :display_order, :is_active])
+    |> changeset(attrs)
     |> put_change(:user_id, user_scope.user.id)
   end
 end

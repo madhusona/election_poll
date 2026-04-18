@@ -1,276 +1,305 @@
 defmodule ElectionPoll.Elections do
-  @moduledoc """
-  The Elections context.
-  """
-
   import Ecto.Query, warn: false
+
   alias ElectionPoll.Repo
-
   alias ElectionPoll.Accounts.Scope
-  alias ElectionPoll.Elections.{State, Booth, Constituency, Candidate, Campaign}
+  alias ElectionPoll.Accounts.AccessControl
+  alias ElectionPoll.Elections.{State, Constituency, Candidate, Campaign, Booth}
 
-  # ---------------------------------------------------------------------------
-  # State
-  # ---------------------------------------------------------------------------
+  ## -----------------------------
+  ## helpers
+  ## -----------------------------
 
-  def subscribe_states(%Scope{} = scope) do
-    key = scope.user.id
-    Phoenix.PubSub.subscribe(ElectionPoll.PubSub, "user:#{key}:states")
+  defp role_of(%Scope{user: user}) when is_atom(user.role), do: Atom.to_string(user.role)
+  defp role_of(%Scope{user: user}) when is_binary(user.role), do: user.role
+  defp role_of(_), do: "user"
+
+  defp allowed_scope(scope), do: AccessControl.allowed_scope(scope.user)
+
+  defp admin?(scope), do: role_of(scope) == "admin"
+  defp subadmin?(scope), do: role_of(scope) == "subadmin"
+
+  ## -----------------------------
+  ## states
+  ## -----------------------------
+
+  def list_states do
+    Repo.all(from s in State, order_by: [asc: s.name])
   end
 
-  defp broadcast_state(%Scope{} = scope, message) do
-    key = scope.user.id
-    Phoenix.PubSub.broadcast(ElectionPoll.PubSub, "user:#{key}:states", message)
-  end
+  def list_states(%Scope{} = scope) do
+    if admin?(scope) do
+      list_states()
+    else
+      scope_data = allowed_scope(scope)
 
-  def list_states(%Scope{} = _scope) do
-    Repo.all(from s in State, where: s.is_active == true, order_by: [asc: s.name])
-  end
+      query =
+        from s in State,
+          join: con in Constituency,
+          on: con.state_id == s.id,
+          distinct: s.id,
+          order_by: [asc: s.name]
 
-  def count_active_candidates_by_constituency_ids(constituency_ids) do
-    from(c in Candidate,
-      where: c.constituency_id in ^constituency_ids and c.is_active == true,
-      group_by: c.constituency_id,
-      select: {c.constituency_id, count(c.id)}
-    )
-    |> Repo.all()
-    |> Map.new()
-  end
+      query =
+        cond do
+          scope_data.state_ids != [] ->
+            where(query, [s, _con], s.id in ^scope_data.state_ids)
 
-  def list_active_states_with_campaigns do
-    from(s in State,
-      join: cst in Constituency, on: cst.state_id == s.id,
-      join: camp in Campaign, on: camp.constituency_id == cst.id,
-      where: s.is_active == true and cst.is_active == true and camp.is_active == true,
-      distinct: s.id,
-      order_by: [asc: s.name],
-      select: %{
-        state_id: s.id,
-        state_name: s.name,
-        campaign_slug: camp.slug,
-        campaign_name: camp.name
-      }
-    )
-    |> Repo.all()
-  end
+          scope_data.constituency_ids != [] ->
+            where(query, [_s, con], con.id in ^scope_data.constituency_ids)
 
-  def list_active_campaigns do
-    Campaign
-    |> where([c], c.is_active == true)
-    |> preload(constituency: [:state])
-    |> Repo.all()
-  end
+          true ->
+            where(query, [_s, _con], false)
+        end
 
-  def get_state!(%Scope{} = scope, id) do
-    Repo.get_by!(State, id: id, user_id: scope.user.id)
-  end
-
-  def create_state(%Scope{} = scope, attrs) do
-    with {:ok, state = %State{}} <-
-           %State{}
-           |> State.changeset(attrs, scope)
-           |> Repo.insert() do
-      broadcast_state(scope, {:created, state})
-      {:ok, state}
+      Repo.all(query)
     end
   end
 
-  def update_state(%Scope{} = scope, %State{} = state, attrs) do
-    true = state.user_id == scope.user.id
+  def get_state!(id), do: Repo.get!(State, id)
 
-    with {:ok, state = %State{}} <-
-           state
-           |> State.changeset(attrs, scope)
-           |> Repo.update() do
-      broadcast_state(scope, {:updated, state})
-      {:ok, state}
+  def create_state(attrs \\ %{}) do
+    %State{}
+    |> State.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_state(%State{} = state, attrs) do
+    state
+    |> State.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_state(%State{} = state) do
+    Repo.delete(state)
+  end
+
+  def change_state(%State{} = state, attrs \\ %{}) do
+    State.changeset(state, attrs)
+  end
+
+  ## -----------------------------
+  ## constituency query
+  ## -----------------------------
+
+  defp constituency_query(%Scope{} = scope) do
+    cond do
+      admin?(scope) ->
+        from con in Constituency,
+          preload: [:state],
+          order_by: [asc: con.display_order, asc: con.name]
+
+      subadmin?(scope) ->
+        scope_data = allowed_scope(scope)
+
+        from con in Constituency,
+          join: s in assoc(con, :state),
+          where:
+            con.id in ^scope_data.constituency_ids or
+              (^scope_data.state_ids != [] and s.id in ^scope_data.state_ids),
+          preload: [state: s],
+          distinct: con.id,
+          order_by: [asc: con.display_order, asc: con.name]
+
+      true ->
+        from con in Constituency,
+          where: con.user_id == ^scope.user.id,
+          preload: [:state],
+          order_by: [asc: con.display_order, asc: con.name]
     end
   end
 
-  def delete_state(%Scope{} = scope, %State{} = state) do
-    true = state.user_id == scope.user.id
-
-    with {:ok, state = %State{}} <- Repo.delete(state) do
-      broadcast_state(scope, {:deleted, state})
-      {:ok, state}
-    end
-  end
-
-  def change_state(%Scope{} = scope, %State{} = state, attrs \\ %{}) do
-    true = state.user_id == scope.user.id
-    State.changeset(state, attrs, scope)
-  end
-
-  # ---------------------------------------------------------------------------
-  # Constituency
-  # ---------------------------------------------------------------------------
-
-  def subscribe_constituencies(%Scope{} = scope) do
-    key = scope.user.id
-    Phoenix.PubSub.subscribe(ElectionPoll.PubSub, "user:#{key}:constituencies")
-  end
-
-  defp broadcast_constituency(%Scope{} = scope, message) do
-    key = scope.user.id
-    Phoenix.PubSub.broadcast(ElectionPoll.PubSub, "user:#{key}:constituencies", message)
-  end
+  ## -----------------------------
+  ## constituencies
+  ## -----------------------------
 
   def list_constituencies(%Scope{} = scope) do
-    Repo.all_by(Constituency, user_id: scope.user.id)
-  end
-
-  # Keep this unscoped helper for dropdown/public flows where you already use it.
-  def list_constituencies do
-    Repo.all(from c in Constituency, order_by: [asc: c.name])
+    Repo.all(constituency_query(scope))
   end
 
   def get_constituency!(%Scope{} = scope, id) do
-    Repo.get_by!(Constituency, id: id, user_id: scope.user.id)
+    constituency_query(scope)
+    |> where([con], con.id == ^id)
+    |> Repo.one!()
   end
 
-  def get_constituency_by_user!(user_id, constituency_id) do
-    Repo.get_by!(Constituency, id: constituency_id, user_id: user_id)
-  end
+  def create_constituency(%Scope{} = scope, attrs \\ %{}) do
+    attrs =
+      if admin?(scope) or subadmin?(scope) do
+        attrs
+      else
+        Map.put(attrs, "user_id", scope.user.id)
+      end
 
-  def list_active_constituencies_by_user(user_id) do
-    Constituency
-    |> where([c], c.user_id == ^user_id and c.is_active == true)
-    |> order_by([c], asc: c.display_order, asc: c.name)
-    |> Repo.all()
-  end
-
-  def create_constituency(%Scope{} = scope, attrs) do
-    with {:ok, constituency = %Constituency{}} <-
-           %Constituency{}
-           |> Constituency.changeset(attrs, scope)
-           |> Repo.insert() do
-      broadcast_constituency(scope, {:created, constituency})
-      {:ok, constituency}
-    end
+    %Constituency{}
+    |> Constituency.changeset(attrs)
+    |> Repo.insert()
   end
 
   def update_constituency(%Scope{} = scope, %Constituency{} = constituency, attrs) do
-    true = constituency.user_id == scope.user.id
+    _existing = get_constituency!(scope, constituency.id)
 
-    with {:ok, constituency = %Constituency{}} <-
-           constituency
-           |> Constituency.changeset(attrs, scope)
-           |> Repo.update() do
-      broadcast_constituency(scope, {:updated, constituency})
-      {:ok, constituency}
-    end
+    constituency
+    |> Constituency.changeset(attrs)
+    |> Repo.update()
   end
 
   def delete_constituency(%Scope{} = scope, %Constituency{} = constituency) do
-    true = constituency.user_id == scope.user.id
-
-    with {:ok, constituency = %Constituency{}} <- Repo.delete(constituency) do
-      broadcast_constituency(scope, {:deleted, constituency})
-      {:ok, constituency}
-    end
+    _existing = get_constituency!(scope, constituency.id)
+    Repo.delete(constituency)
   end
 
   def change_constituency(%Scope{} = scope, %Constituency{} = constituency, attrs \\ %{}) do
-    true = constituency.user_id == scope.user.id
-    Constituency.changeset(constituency, attrs, scope)
+    if constituency.id, do: get_constituency!(scope, constituency.id)
+    Constituency.changeset(constituency, attrs)
   end
 
-  # ---------------------------------------------------------------------------
-  # Candidate
-  # ---------------------------------------------------------------------------
+  ## -----------------------------
+  ## candidate query
+  ## -----------------------------
 
-  def subscribe_candidates(%Scope{} = scope) do
-    key = scope.user.id
-    Phoenix.PubSub.subscribe(ElectionPoll.PubSub, "user:#{key}:candidates")
+  defp candidate_query(%Scope{} = scope) do
+    cond do
+      admin?(scope) ->
+        from c in Candidate,
+          join: con in assoc(c, :constituency),
+          preload: [constituency: con],
+          order_by: [asc: con.name, asc: c.candidate_name]
+
+      subadmin?(scope) ->
+        scope_data = allowed_scope(scope)
+
+        from c in Candidate,
+          join: con in assoc(c, :constituency),
+          where: c.constituency_id in ^scope_data.constituency_ids,
+          preload: [constituency: con],
+          order_by: [asc: con.name, asc: c.candidate_name]
+
+      true ->
+        from c in Candidate,
+          join: con in assoc(c, :constituency),
+          where: c.user_id == ^scope.user.id,
+          preload: [constituency: con],
+          order_by: [asc: con.name, asc: c.candidate_name]
+    end
   end
 
-  defp broadcast_candidate(%Scope{} = scope, message) do
-    key = scope.user.id
-    Phoenix.PubSub.broadcast(ElectionPoll.PubSub, "user:#{key}:candidates", message)
-  end
+  ## -----------------------------
+  ## candidates
+  ## -----------------------------
 
   def list_candidates(%Scope{} = scope) do
-    Repo.all_by(Candidate, user_id: scope.user.id)
-  end
-
-  def get_candidate!(%Scope{} = scope, id) do
-    Repo.get_by!(Candidate, id: id, user_id: scope.user.id)
+    Repo.all(candidate_query(scope))
   end
 
   def list_active_candidates_by_constituency(constituency_id) do
     Candidate
     |> where([c], c.constituency_id == ^constituency_id and c.is_active == true)
-    |> order_by([c], asc: c.display_order)
+    |> order_by([c], asc: c.display_order, asc: c.candidate_name)
     |> Repo.all()
   end
 
-  def create_candidate(%Scope{} = scope, attrs) do
-    with {:ok, candidate = %Candidate{}} <-
-           %Candidate{}
-           |> Candidate.changeset(attrs, scope)
-           |> Repo.insert() do
-      broadcast_candidate(scope, {:created, candidate})
-      {:ok, candidate}
-    end
+  def get_candidate!(%Scope{} = scope, id) do
+    candidate_query(scope)
+    |> where([c, _con], c.id == ^id)
+    |> Repo.one!()
+  end
+
+  def create_candidate(%Scope{} = scope, attrs \\ %{}) do
+    constituency_id = Map.get(attrs, "constituency_id") || Map.get(attrs, :constituency_id)
+    _constituency = get_constituency!(scope, constituency_id)
+
+    attrs =
+      if admin?(scope) or subadmin?(scope) do
+        attrs
+      else
+        Map.put(attrs, "user_id", scope.user.id)
+      end
+
+    %Candidate{}
+    |> Candidate.changeset(attrs)
+    |> Repo.insert()
   end
 
   def update_candidate(%Scope{} = scope, %Candidate{} = candidate, attrs) do
-    true = candidate.user_id == scope.user.id
+    _existing = get_candidate!(scope, candidate.id)
 
-    with {:ok, candidate = %Candidate{}} <-
-           candidate
-           |> Candidate.changeset(attrs, scope)
-           |> Repo.update() do
-      broadcast_candidate(scope, {:updated, candidate})
-      {:ok, candidate}
-    end
+    constituency_id =
+      Map.get(attrs, "constituency_id") ||
+        Map.get(attrs, :constituency_id) ||
+        candidate.constituency_id
+
+    _constituency = get_constituency!(scope, constituency_id)
+
+    candidate
+    |> Candidate.changeset(attrs)
+    |> Repo.update()
   end
 
   def delete_candidate(%Scope{} = scope, %Candidate{} = candidate) do
-    true = candidate.user_id == scope.user.id
-
-    with {:ok, candidate = %Candidate{}} <- Repo.delete(candidate) do
-      broadcast_candidate(scope, {:deleted, candidate})
-      {:ok, candidate}
-    end
-  end
-
-  def list_active_constituencies_by_user_and_state(user_id, state_id) do
-    Constituency
-    |> where([c], c.user_id == ^user_id and c.state_id == ^state_id and c.is_active == true)
-    |> order_by([c], asc: c.display_order, asc: c.name)
-    |> Repo.all()
+    _existing = get_candidate!(scope, candidate.id)
+    Repo.delete(candidate)
   end
 
   def change_candidate(%Scope{} = scope, %Candidate{} = candidate, attrs \\ %{}) do
-    true = candidate.user_id == scope.user.id
-    Candidate.changeset(candidate, attrs, scope)
+    if candidate.id, do: get_candidate!(scope, candidate.id)
+    Candidate.changeset(candidate, attrs)
+  end
+  # -----------------------------------
+  # ADMIN ONLY (NO SCOPE)
+  # -----------------------------------
+
+  def list_all_campaigns do
+    Repo.all(from c in Campaign, order_by: [asc: c.name])
   end
 
-  # ---------------------------------------------------------------------------
-  # Campaign
-  # ---------------------------------------------------------------------------
-
-  def subscribe_campaigns(%Scope{} = scope) do
-    key = scope.user.id
-    Phoenix.PubSub.subscribe(ElectionPoll.PubSub, "user:#{key}:campaigns")
+  def list_all_states do
+    Repo.all(from s in State, order_by: [asc: s.name])
   end
 
-  defp broadcast_campaign(%Scope{} = scope, message) do
-    key = scope.user.id
-    Phoenix.PubSub.broadcast(ElectionPoll.PubSub, "user:#{key}:campaigns", message)
+  def list_all_constituencies do
+    Repo.all(from c in Constituency, order_by: [asc: c.name])
   end
+
+  def list_all_booths do
+    Repo.all(from b in Booth, order_by: [asc: b.name])
+end
+  ## -----------------------------
+  ## campaign query
+  ## -----------------------------
+
+  defp campaign_query(%Scope{} = scope) do
+    cond do
+      admin?(scope) ->
+        from cam in Campaign,
+          join: con in assoc(cam, :constituency),
+          preload: [constituency: con],
+          order_by: [asc: cam.inserted_at]
+
+      subadmin?(scope) ->
+        scope_data = allowed_scope(scope)
+
+        from cam in Campaign,
+          join: con in assoc(cam, :constituency),
+          where: cam.id in ^scope_data.campaign_ids,
+          preload: [constituency: con],
+          order_by: [asc: cam.inserted_at]
+
+      true ->
+        from cam in Campaign,
+          join: con in assoc(cam, :constituency),
+          where: cam.user_id == ^scope.user.id,
+          preload: [constituency: con],
+          order_by: [asc: cam.inserted_at]
+    end
+  end
+
+  ## -----------------------------
+  ## campaigns
+  ## -----------------------------
 
   def list_campaigns(%Scope{} = scope) do
-    Repo.all_by(Campaign, user_id: scope.user.id)
-  end
-
-  def get_campaign!(%Scope{} = scope, id) do
-    Repo.get_by!(Campaign, id: id, user_id: scope.user.id)
-  end
-
-  def get_campaign_by_slug(slug) do
-    Repo.get_by(Campaign, slug: slug, is_active: true)
+    Repo.all(campaign_query(scope))
   end
 
   def get_active_campaign_by_slug(slug) do
@@ -285,56 +314,91 @@ defmodule ElectionPoll.Elections do
     |> Repo.preload(constituency: [:state])
   end
 
-  def create_campaign(%Scope{} = scope, attrs) do
-    with {:ok, campaign = %Campaign{}} <-
-           %Campaign{}
-           |> Campaign.changeset(attrs, scope)
-           |> Repo.insert() do
-      broadcast_campaign(scope, {:created, campaign})
-      {:ok, campaign}
-    end
+  def get_campaign!(%Scope{} = scope, id) do
+    campaign_query(scope)
+    |> where([cam, _con], cam.id == ^id)
+    |> Repo.one!()
+  end
+
+  
+
+  def create_campaign(%Scope{} = scope, attrs \\ %{}) do
+    constituency_id = Map.get(attrs, "constituency_id") || Map.get(attrs, :constituency_id)
+    _constituency = get_constituency!(scope, constituency_id)
+
+    attrs =
+      if admin?(scope) or subadmin?(scope) do
+        attrs
+      else
+        Map.put(attrs, "user_id", scope.user.id)
+      end
+
+    %Campaign{}
+    |> Campaign.changeset(attrs)
+    |> Repo.insert()
   end
 
   def update_campaign(%Scope{} = scope, %Campaign{} = campaign, attrs) do
-    true = campaign.user_id == scope.user.id
+    _existing = get_campaign!(scope, campaign.id)
 
-    with {:ok, campaign = %Campaign{}} <-
-           campaign
-           |> Campaign.changeset(attrs, scope)
-           |> Repo.update() do
-      broadcast_campaign(scope, {:updated, campaign})
-      {:ok, campaign}
-    end
+    constituency_id =
+      Map.get(attrs, "constituency_id") ||
+        Map.get(attrs, :constituency_id) ||
+        campaign.constituency_id
+
+    _constituency = get_constituency!(scope, constituency_id)
+
+    campaign
+    |> Campaign.changeset(attrs)
+    |> Repo.update()
   end
 
   def delete_campaign(%Scope{} = scope, %Campaign{} = campaign) do
-    true = campaign.user_id == scope.user.id
-
-    with {:ok, campaign = %Campaign{}} <- Repo.delete(campaign) do
-      broadcast_campaign(scope, {:deleted, campaign})
-      {:ok, campaign}
-    end
+    _existing = get_campaign!(scope, campaign.id)
+    Repo.delete(campaign)
   end
 
   def change_campaign(%Scope{} = scope, %Campaign{} = campaign, attrs \\ %{}) do
-    if campaign.id do
-      true = campaign.user_id == scope.user.id
-    end
-
-    Campaign.changeset(campaign, attrs, scope)
+    if campaign.id, do: get_campaign!(scope, campaign.id)
+    Campaign.changeset(campaign, attrs)
   end
 
-  # ---------------------------------------------------------------------------
-  # Booth
-  # ---------------------------------------------------------------------------
+  ## -----------------------------
+  ## booth query
+  ## -----------------------------
+
+  defp booth_query(%Scope{} = scope) do
+    cond do
+      admin?(scope) ->
+        from b in Booth,
+          join: con in assoc(b, :constituency),
+          preload: [constituency: con],
+          order_by: [asc: con.name, asc: b.name]
+
+      subadmin?(scope) ->
+        scope_data = allowed_scope(scope)
+
+        from b in Booth,
+          join: con in assoc(b, :constituency),
+          where: b.constituency_id in ^scope_data.constituency_ids,
+          preload: [constituency: con],
+          order_by: [asc: con.name, asc: b.name]
+
+      true ->
+        from b in Booth,
+          join: con in assoc(b, :constituency),
+          where: con.user_id == ^scope.user.id,
+          preload: [constituency: con],
+          order_by: [asc: con.name, asc: b.name]
+    end
+  end
+
+  ## -----------------------------
+  ## booths
+  ## -----------------------------
 
   def list_booths(%Scope{} = scope) do
-    Booth
-    |> join(:inner, [b], c in Constituency, on: c.id == b.constituency_id)
-    |> where([_b, c], c.user_id == ^scope.user.id)
-    |> preload([_b, c], constituency: c)
-    |> order_by([b, _c], asc: b.name)
-    |> Repo.all()
+    Repo.all(booth_query(scope))
   end
 
   def list_active_booths_by_constituency(constituency_id) do
@@ -346,10 +410,8 @@ defmodule ElectionPoll.Elections do
   end
 
   def get_booth!(%Scope{} = scope, id) do
-    Booth
-    |> join(:inner, [b], c in Constituency, on: c.id == b.constituency_id)
-    |> where([b, c], b.id == ^id and c.user_id == ^scope.user.id)
-    |> preload([_b, c], constituency: c)
+    booth_query(scope)
+    |> where([booth, _con], booth.id == ^id)
     |> Repo.one!()
   end
 
@@ -387,10 +449,250 @@ defmodule ElectionPoll.Elections do
   end
 
   def change_booth(%Scope{} = scope, %Booth{} = booth, attrs \\ %{}) do
-    if booth.id do
-      _existing = get_booth!(scope, booth.id)
-    end
-
+    if booth.id, do: get_booth!(scope, booth.id)
     Booth.changeset(booth, attrs)
   end
+
+  def list_active_states_with_campaigns do
+    query = 
+      from s in State,
+        join: con in Constituency, on: con.state_id == s.id,
+        join: cam in Campaign, on: cam.constituency_id == con.id,
+        where: s.is_active == true and con.is_active == true and cam.is_active == true,
+        distinct: s.id,
+        order_by: [asc: s.display_order, asc: s.name],
+        select: %{
+          id: s.id,
+          name: s.name,
+          code: s.code,
+          campaign_slug: cam.slug,
+          campaign_name: cam.name
+        }
+
+    Repo.all(query)
+  end
+
+ 
+
+  ## -----------------------------
+  ## public polling helpers
+  ## -----------------------------
+
+  
+
+  
+
+  def list_active_constituencies_by_state(state_id) do
+    Repo.all(
+      from con in Constituency,
+        where: con.state_id == ^state_id and con.is_active == true,
+        order_by: [asc: con.display_order, asc: con.name]
+    )
+  end
+
+  def get_active_constituency!(id) do
+    Repo.one!(
+      from con in Constituency,
+        where: con.id == ^id and con.is_active == true,
+        preload: [:state]
+    )
+  end
+
+  
+  
+
+  def count_active_candidates_by_constituency_ids(constituency_ids) when is_list(constituency_ids) do
+    Repo.all(
+      from c in Candidate,
+        where: c.constituency_id in ^constituency_ids and c.is_active == true,
+        group_by: c.constituency_id,
+        select: {c.constituency_id, count(c.id)}
+    )
+    |> Map.new()
+  end
+
+  
+
+  defp apply_scope_for_states_with_campaigns(query, %{user: %{role: role} = user} = scope) do
+    case normalize_role(role) do
+      "admin" ->
+        query
+
+      "subadmin" ->
+        allowed_scope = ElectionPoll.Accounts.AccessControl.allowed_scope(user)
+
+        from s in query,
+          where: s.id in ^allowed_scope.state_ids
+
+      _ ->
+        from s in query,
+          join: con in Constituency,
+          on: con.state_id == s.id,
+          join: cam in Campaign,
+          on: cam.constituency_id == con.id,
+          where: cam.user_id == ^user.id
+    end
+  end
+
+  def get_constituency!(id), do: Repo.get!(Constituency, id)
+  def list_booths_by_constituency(constituency_id) do
+    Booth
+    |> where([b], b.constituency_id == ^constituency_id)
+    |> Repo.all()
+  end
+  def get_active_campaign_by_slug!(slug) do
+    Campaign
+    |> where([c], c.slug == ^slug and c.is_active == true)
+    |> Repo.one!()
+  end
+
+  def get_booth!(id), do: Repo.get!(Booth, id)
+
+  def get_active_campaign_by_slug!(slug) do
+    Campaign
+    |> where([c], c.slug == ^slug and c.is_active == true)
+    |> Repo.one!()
+  end
+
+  def get_constituency!(id), do: Repo.get!(Constituency, id)
+
+  def list_booths_by_constituency(constituency_id) do
+    Booth
+    |> where([b], b.constituency_id == ^constituency_id)
+    |> Repo.all()
+  end
+
+  def get_booth!(id), do: Repo.get!(Booth, id)
+  defp normalize_role(nil), do: "user"
+  defp normalize_role(role) when is_atom(role), do: Atom.to_string(role)
+  defp normalize_role(role) when is_binary(role), do: role
+
+  ## -----------------------------
+  ## public polling helpers
+  ## -----------------------------
+
+  def list_active_states_with_campaigns do
+    query =
+      from s in State,
+        join: con in Constituency, on: con.state_id == s.id,
+        join: cam in Campaign, on: cam.constituency_id == con.id,
+        where:
+          s.is_active == true and
+            con.is_active == true and
+            cam.is_active == true,
+        distinct: s.id,
+        order_by: [asc: s.display_order, asc: s.name],
+        select: %{
+          id: s.id,
+          state_name: s.name,
+          code: s.code,
+          campaign_slug: cam.slug,
+          campaign_name: cam.name
+        }
+
+    Repo.all(query)
+  end
+
+  def get_campaign_by_slug(slug) do
+    Repo.get_by(Campaign, slug: slug, is_active: true)
+  end
+
+  def get_active_campaign_by_slug(slug) do
+    Repo.one(
+      from cam in Campaign,
+        join: con in Constituency, on: con.id == cam.constituency_id,
+        join: s in State, on: s.id == con.state_id,
+        where:
+          cam.slug == ^slug and
+            cam.is_active == true and
+            con.is_active == true and
+            s.is_active == true,
+        preload: [constituency: {con, state: s}]
+    )
+  end
+
+  def get_active_campaign_with_constituency_by_slug(slug) do
+    Repo.one(
+      from cam in Campaign,
+        join: con in Constituency, on: con.id == cam.constituency_id,
+        join: s in State, on: s.id == con.state_id,
+        where:
+          cam.slug == ^slug and
+            cam.is_active == true and
+            con.is_active == true and
+            s.is_active == true,
+        preload: [constituency: {con, state: s}]
+    )
+  end
+
+  def list_active_constituencies_by_state(state_id) do
+    Repo.all(
+      from con in Constituency,
+        join: s in State, on: s.id == con.state_id,
+        where:
+          con.state_id == ^state_id and
+            con.is_active == true and
+            s.is_active == true,
+        preload: [state: s],
+        order_by: [asc: con.display_order, asc: con.name]
+    )
+  end
+
+  def get_active_constituency!(id) do
+    Repo.one!(
+      from con in Constituency,
+        join: s in State, on: s.id == con.state_id,
+        where:
+          con.id == ^id and
+            con.is_active == true and
+            s.is_active == true,
+        preload: [state: s]
+    )
+  end
+
+  def count_active_candidates_by_constituency_ids(constituency_ids) when is_list(constituency_ids) do
+    if constituency_ids == [] do
+      %{}
+    else
+      Repo.all(
+        from c in Candidate,
+          where:
+            c.constituency_id in ^constituency_ids and
+              c.status == "Active",
+          group_by: c.constituency_id,
+          select: {c.constituency_id, count(c.id)}
+      )
+      |> Map.new()
+    end
+  end
+
+  def count_active_booths_by_constituency_ids(constituency_ids) when is_list(constituency_ids) do
+    if constituency_ids == [] do
+      %{}
+    else
+      Repo.all(
+        from b in Booth,
+          where:
+            b.constituency_id in ^constituency_ids and
+              b.status == "Active",
+          group_by: b.constituency_id,
+          select: {b.constituency_id, count(b.id)}
+      )
+      |> Map.new()
+    end
+  end
+
+  
+
+  def list_active_booths_by_constituency(constituency_id) do
+    Repo.all(
+      from b in Booth,
+        where:
+          b.constituency_id == ^constituency_id and
+            b.status == "Active",
+        order_by: [asc: b.name]
+    )
+  end
 end
+
+  

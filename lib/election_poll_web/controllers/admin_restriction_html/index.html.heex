@@ -1,0 +1,252 @@
+<div class="min-h-screen bg-slate-50">
+  <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-slate-900">User Restrictions</h1>
+      <p class="mt-1 text-sm text-slate-600">
+        Admin can apply optional allow-list restrictions for subadmin users.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div class="lg:col-span-4">
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-200 px-4 py-3">
+            <h2 class="text-lg font-semibold text-slate-900">Users</h2>
+          </div>
+
+          <div class="p-3 space-y-2">
+            <%= for user <- @users do %>
+              <a
+                href={~p"/admin/user-restrictions?user_id=#{user.id}"}
+                class={[
+                  "block rounded-xl border px-4 py-3 transition",
+                  @selected_user && @selected_user.id == user.id &&
+                    "border-blue-500 bg-blue-50",
+                  (!@selected_user || @selected_user.id != user.id) &&
+                    "border-slate-200 bg-white hover:bg-slate-50"
+                ]}
+              >
+                <div class="font-medium text-slate-900"><%= user.email %></div>
+                <div class="text-sm text-slate-500">Role: <%= user.role %></div>
+              </a>
+            <% end %>
+
+            <%= if @users == [] do %>
+              <div class="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-slate-500">
+                No non-admin users found.
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-8">
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <%= if @selected_user do %>
+            <div class="border-b border-slate-200 px-4 py-3">
+              <h2 class="text-lg font-semibold text-slate-900">
+                Restrictions for <%= @selected_user.email %>
+              </h2>
+              <p class="mt-1 text-sm text-slate-500">
+                Admin users always have full access. Restrictions apply only to subadmin users.
+              </p>
+            </div>
+
+            <div class="p-4">
+              <form method="post" action={~p"/admin/user-restrictions/#{@selected_user.id}"}>
+                <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-slate-700">Campaigns</label>
+                    <select name="campaign_ids[]" multiple class="min-h-40 w-full rounded-xl border border-slate-300 px-3 py-2">
+                      <%= for item <- @campaigns do %>
+                        <option value={item.id} selected={item.id in @restrictions.campaign_ids}>
+                          <%= item.name %>
+                        </option>
+                      <% end %>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-slate-700">States</label>
+                    <select name="state_ids[]" multiple class="min-h-40 w-full rounded-xl border border-slate-300 px-3 py-2">
+                      <%= for item <- @states do %>
+                        <option value={item.id} selected={item.id in @restrictions.state_ids}>
+                          <%= item.name %>
+                        </option>
+                      <% end %>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-slate-700">Constituencies</label>
+                    <select name="constituency_ids[]" multiple class="min-h-40 w-full rounded-xl border border-slate-300 px-3 py-2">
+                      <%= for item <- @constituencies do %>
+                        <option value={item.id} selected={item.id in @restrictions.constituency_ids}>
+                          <%= item.name %>
+                        </option>
+                      <% end %>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-slate-700">Booths</label>
+                    <select name="booth_ids[]" multiple class="min-h-40 w-full rounded-xl border border-slate-300 px-3 py-2">
+                      <%= for item <- @booths do %>
+                        <option value={item.id}>
+                          <%= item.name %>
+                        </option>
+                      <% end %>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="mt-6">
+  <div class="mb-2 text-sm font-medium text-slate-700">Feature Permissions</div>
+
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <label class="flex items-center gap-2">
+      <input
+        type="checkbox"
+        name="can_view_responses"
+        value="true"
+        checked={@restrictions.feature_permissions &&
+          @restrictions.feature_permissions.permissions["can_view_responses"]}
+      />
+      <span class="text-sm text-slate-700">View Responses</span>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <input
+        type="checkbox"
+        name="can_view_response_detail"
+        value="true"
+        checked={@restrictions.feature_permissions &&
+          @restrictions.feature_permissions.permissions["can_view_response_detail"]}
+      />
+      <span class="text-sm text-slate-700">View Response Detail</span>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <input
+        type="checkbox"
+        name="can_view_location"
+        value="true"
+        checked={@restrictions.feature_permissions &&
+          @restrictions.feature_permissions.permissions["can_view_location"]}
+      />
+      <span class="text-sm text-slate-700">View Location</span>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <input
+        type="checkbox"
+        name="can_view_exact_coordinates"
+        value="true"
+        checked={@restrictions.feature_permissions &&
+          @restrictions.feature_permissions.permissions["can_view_exact_coordinates"]}
+      />
+      <span class="text-sm text-slate-700">View Exact Coordinates</span>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <input
+        type="checkbox"
+        name="can_view_mobile"
+        value="true"
+        checked={@restrictions.feature_permissions &&
+          @restrictions.feature_permissions.permissions["can_view_mobile"]}
+      />
+      <span class="text-sm text-slate-700">View Mobile</span>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <input
+        type="checkbox"
+        name="can_view_voter_name"
+        value="true"
+        checked={@restrictions.feature_permissions &&
+          @restrictions.feature_permissions.permissions["can_view_voter_name"]}
+      />
+      <span class="text-sm text-slate-700">View Voter Name</span>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <input
+        type="checkbox"
+        name="can_view_selfie"
+        value="true"
+        checked={@restrictions.feature_permissions &&
+          @restrictions.feature_permissions.permissions["can_view_selfie"]}
+      />
+      <span class="text-sm text-slate-700">View Selfie</span>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <input
+        type="checkbox"
+        name="can_view_device_fingerprint"
+        value="true"
+        checked={@restrictions.feature_permissions &&
+          @restrictions.feature_permissions.permissions["can_view_device_fingerprint"]}
+      />
+      <span class="text-sm text-slate-700">View Device Fingerprint</span>
+    </label>
+
+    <label class="flex items-center gap-2">
+      <input
+        type="checkbox"
+        name="can_export_responses"
+        value="true"
+        checked={@restrictions.feature_permissions &&
+          @restrictions.feature_permissions.permissions["can_export_responses"]}
+      />
+      <span class="text-sm text-slate-700">Export Responses</span>
+    </label>
+  </div>
+</div>
+
+<div class="mt-6">
+  <label class="mb-2 block text-sm font-medium text-slate-700">
+    Device Fingerprints
+  </label>
+
+  <p class="mb-2 text-xs text-slate-500">
+    Paste one device fingerprint per line.
+  </p>
+
+  <textarea
+    name="device_fingerprints"
+    rows="6"
+    class="w-full rounded-xl border border-slate-300 px-3 py-2"
+  ><%= Enum.join(@restrictions.device_fingerprints || [], "\n") %></textarea>
+</div>
+
+                <div class="mt-6 flex items-center gap-3">
+                  <button
+                    type="submit"
+                    class="rounded-xl bg-blue-600 px-5 py-2.5 text-white hover:bg-blue-700"
+                  >
+                    Save Restrictions
+                  </button>
+
+                  <a
+                    href={~p"/admin/user-restrictions?user_id=#{@selected_user.id}"}
+                    class="rounded-xl border border-slate-300 px-5 py-2.5 text-slate-700 hover:bg-slate-50"
+                  >
+                    Reset
+                  </a>
+                </div>
+              </form>
+            </div>
+          <% else %>
+            <div class="p-8 text-center text-slate-500">
+              No user selected.
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -19,7 +19,8 @@ defmodule ElectionPoll.Elections.Campaign do
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(campaign, attrs, %Scope{} = scope) do
+  @doc false
+  def changeset(campaign, attrs) do
     campaign
     |> cast(attrs, [
       :name,
@@ -29,9 +30,9 @@ defmodule ElectionPoll.Elections.Campaign do
       :starts_at,
       :ends_at,
       :constituency_id,
-      :assigned_user_id
+      :assigned_user_id,
+      :user_id
     ])
-    |> put_change(:user_id, scope.user.id)
     |> validate_required([
       :name,
       :slug,
@@ -39,9 +40,16 @@ defmodule ElectionPoll.Elections.Campaign do
       :is_active,
       :starts_at,
       :ends_at,
-      :user_id,
       :constituency_id
     ])
+    |> assoc_constraint(:constituency)
     |> unique_constraint(:slug)
+  end
+
+  @doc false
+  def changeset(campaign, attrs, %Scope{} = scope) do
+    campaign
+    |> changeset(attrs)
+    |> put_change(:user_id, scope.user.id)
   end
 end

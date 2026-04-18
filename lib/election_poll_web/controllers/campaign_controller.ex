@@ -14,7 +14,7 @@ defmodule ElectionPollWeb.CampaignController do
   def new(conn, _params) do
     scope = conn.assigns.current_scope
     changeset = Elections.change_campaign(scope, %Campaign{})
-    constituencies = Elections.list_constituencies()
+    constituencies = Elections.list_constituencies(scope)
     subadmins = Accounts.list_subadmins()
 
     render(conn, :new,
@@ -34,7 +34,7 @@ defmodule ElectionPollWeb.CampaignController do
         |> redirect(to: ~p"/campaigns/#{campaign}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        constituencies = Elections.list_constituencies()
+        constituencies = Elections.list_constituencies(scope)
         subadmins = Accounts.list_subadmins()
 
         render(conn, :new,
@@ -55,7 +55,7 @@ defmodule ElectionPollWeb.CampaignController do
     scope = conn.assigns.current_scope
     campaign = Elections.get_campaign!(scope, id)
     changeset = Elections.change_campaign(scope, campaign)
-    constituencies = Elections.list_constituencies()
+    constituencies = Elections.list_constituencies(scope)
     subadmins = Accounts.list_subadmins()
 
     render(conn, :edit,
@@ -77,7 +77,7 @@ defmodule ElectionPollWeb.CampaignController do
         |> redirect(to: ~p"/campaigns/#{campaign}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        constituencies = Elections.list_constituencies()
+        constituencies = Elections.list_constituencies(scope)
         subadmins = Accounts.list_subadmins()
 
         render(conn, :edit,

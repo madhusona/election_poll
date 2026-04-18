@@ -2,6 +2,8 @@ defmodule ElectionPoll.Elections.Booth do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias ElectionPoll.Accounts.Scope
+
   schema "booths" do
     field :name, :string
     field :code, :string
@@ -9,14 +11,20 @@ defmodule ElectionPoll.Elections.Booth do
 
     belongs_to :constituency, ElectionPoll.Elections.Constituency
 
-    timestamps()
+    timestamps(type: :utc_datetime)
   end
 
+  @doc false
   def changeset(booth, attrs) do
     booth
     |> cast(attrs, [:name, :code, :status, :constituency_id])
     |> validate_required([:name, :status, :constituency_id])
     |> validate_inclusion(:status, ["Active", "Inactive"])
-    |> unique_constraint([:constituency_id, :name])
+    |> assoc_constraint(:constituency)
+  end
+
+  @doc false
+  def changeset(booth, attrs, %Scope{}) do
+    changeset(booth, attrs)
   end
 end

@@ -12,92 +12,74 @@ defmodule ElectionPollWeb.PollFlowController do
   def constituency(conn, %{"slug" => slug}) do
     campaign = Elections.get_active_campaign_with_constituency_by_slug(slug)
 
-    if campaign do
-      state_id = campaign.constituency && campaign.constituency.state_id
+    if campaign == nil do
+      conn
+      |> put_flash(:error, "Campaign not found or inactive.")
+      |> redirect(to: ~p"/")
+    else
+      state_id = campaign.constituency.state_id
 
-    constituencies =
-      if state_id do
-        Elections.list_active_constituencies_by_user_and_state(campaign.user_id, state_id)
-      else
-        []
-      end
-    constituency_ids = Enum.map(constituencies, & &1.id)
-    candidate_counts = Elections.count_active_candidates_by_constituency_ids(constituency_ids)
+      constituencies = Elections.list_active_constituencies_by_state(state_id)
+      constituency_ids = Enum.map(constituencies, & &1.id)
+
+      candidate_counts =
+        Elections.count_active_candidates_by_constituency_ids(constituency_ids)
+
+      booth_counts =
+        Elections.count_active_booths_by_constituency_ids(constituency_ids)
 
       render(conn, :constituency,
         campaign: campaign,
         constituencies: constituencies,
-        candidate_counts: candidate_counts
+        candidate_counts: candidate_counts,
+        booth_counts: booth_counts
       )
-    else
-      conn
-      |> put_flash(:error, "Campaign not found or inactive.")
-      |> redirect(to: "/")
     end
   end
 
-  def booth(conn, %{"slug" => slug, "constituency_id" => constituency_id}) do
-    campaign = Elections.get_active_campaign_with_constituency_by_slug(slug)
+  def booth(conn, %{"constituency_id" => constituency_id, "slug" => slug}) do
+    campaign = Elections.get_active_campaign_by_slug!(slug)
 
-    cond do
-        is_nil(campaign) ->
-        conn
-        |> put_flash(:error, "Campaign not found or inactive.")
-        |> redirect(to: "/")
+    constituency = Elections.get_constituency!(constituency_id)
 
-        true ->
-        constituency = Elections.get_constituency_by_user!(campaign.user_id, constituency_id)
-        booths = Elections.list_active_booths_by_constituency(constituency.id)
+    booths = Elections.list_booths_by_constituency(constituency.id)
 
-        render(conn, :booth,
-            campaign: campaign,
-            constituency: constituency,
-            booths: booths
-        )
-    end
+    render(conn, :booth,
+      campaign: campaign,
+      constituency: constituency,
+      booths: booths
+    )
   end
 
   def demographic(conn, %{
         "slug" => slug,
         "constituency_id" => constituency_id,
-        "booth_id" => booth_id,
-        "booth_name" => booth_name
-        }) do
-    campaign = Elections.get_active_campaign_with_constituency_by_slug(slug)
+        "booth_id" => booth_id
+      }) do
+    campaign = Elections.get_active_campaign_by_slug!(slug)
+    constituency = Elections.get_constituency!(constituency_id)
+    booth = Elections.get_booth!(booth_id)
 
-    cond do
-        is_nil(campaign) ->
-        conn
-        |> put_flash(:error, "Campaign not found or inactive.")
-        |> redirect(to: "/")
+    conn =
+      put_vote_entry_marker(
+        conn,
+        "demographic",
+        slug,
+        constituency.id,
+        booth.id,
+        booth.name,
+        "",
+        ""
+      )
 
-        is_nil(booth_name) or booth_name == "" ->
-        conn
-        |> put_flash(:error, "Please select a booth.")
-        |> redirect(to: ~p"/poll/#{slug}/booth?constituency_id=#{constituency_id}")
-
-        true ->
-        constituency = Elections.get_constituency_by_user!(campaign.user_id, constituency_id)
-
-        conn =
-          put_vote_entry_marker(
-            conn,
-            "demographic",
-            slug,
-            constituency.id,
-            booth_id,
-            booth_name,
-            "",
-            ""
-          )
-        render(conn, :demographic,
-            campaign: campaign,
-            constituency: constituency,
-            booth_id: booth_id,
-            booth_name: booth_name
-        )
-    end
-    end
+    render(conn, :demographic,
+      campaign: campaign,
+      constituency: constituency,
+      booth: booth,
+      booth_id: booth.id,
+      booth_name: booth.name
+    )
+  end
 
   def permission_denied(conn, params) do
     slug = params["slug"]
@@ -116,7 +98,7 @@ defmodule ElectionPollWeb.PollFlowController do
         |> redirect(to: "/")
 
       true ->
-        constituency = Elections.get_constituency_by_user!(campaign.user_id, constituency_id)
+        constituency = Elections.get_constituency!(constituency_id)
 
         render(conn, :permission_denied,
           campaign: campaign,
@@ -183,19 +165,18 @@ defmodule ElectionPollWeb.PollFlowController do
             ~p"/poll/#{slug}/access?constituency_id=#{constituency_id}&booth_id=#{booth_id}&booth_name=#{booth_name}&gender=#{gender}&age_group=#{age_group}"
         )
 
-        not entry_marker_matches?(conn, slug, constituency_id, booth_id, booth_name, gender, age_group) ->
-          conn
-          |> put_flash(:error, "Invalid or expired voting flow. Please continue from the previous step.")
-          |> redirect(
-            to:
-              ~p"/poll/#{slug}/demographic?constituency_id=#{constituency_id}&booth_id=#{booth_id}&booth_name=#{booth_name}"
-          )
+      not entry_marker_matches?(conn, slug, constituency_id, booth_id, booth_name, gender, age_group) ->
+        conn
+        |> put_flash(:error, "Invalid or expired voting flow. Please continue from the previous step.")
+        |> redirect(
+          to:
+            ~p"/poll/#{slug}/demographic?constituency_id=#{constituency_id}&booth_id=#{booth_id}&booth_name=#{booth_name}"
+        )
 
       true ->
         total_votes = Polling.count_votes(campaign.id, %{})
-        constituency = Elections.get_constituency_by_user!(campaign.user_id, constituency_id)
+        constituency = Elections.get_constituency!(constituency_id)
         candidates = Elections.list_active_candidates_by_constituency(constituency.id)
-
 
         conn =
           issue_vote_token(
@@ -238,7 +219,7 @@ defmodule ElectionPollWeb.PollFlowController do
 
       true ->
         constituency =
-          Elections.get_constituency_by_user!(campaign.user_id, response_params["constituency_id"])
+          Elections.get_constituency!(response_params["constituency_id"])
 
         candidates = Elections.list_active_candidates_by_constituency(constituency.id)
 
@@ -284,7 +265,7 @@ defmodule ElectionPollWeb.PollFlowController do
       case params["constituency_id"] do
         nil -> nil
         constituency_id when not is_nil(campaign) ->
-          Elections.get_constituency_by_user!(campaign.user_id, constituency_id)
+          Elections.get_constituency!(constituency_id)
       end
 
     render(conn, :success,
@@ -432,7 +413,7 @@ defmodule ElectionPollWeb.PollFlowController do
 
         true ->
           constituency =
-            Elections.get_constituency_by_user!(campaign.user_id, response_params["constituency_id"])
+            Elections.get_constituency!(response_params["constituency_id"])
 
           candidates = Elections.list_active_candidates_by_constituency(constituency.id)
 
@@ -524,7 +505,7 @@ defmodule ElectionPollWeb.PollFlowController do
         |> redirect(to: ~p"/poll/#{slug}")
 
         true ->
-        constituency = Elections.get_constituency_by_user!(campaign.user_id, constituency_id)
+        constituency = Elections.get_constituency!(constituency_id)
         conn =
           put_vote_entry_marker(
             conn,

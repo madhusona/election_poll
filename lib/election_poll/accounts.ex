@@ -6,7 +6,16 @@ defmodule ElectionPoll.Accounts do
   import Ecto.Query, warn: false
   alias ElectionPoll.Repo
 
-  alias ElectionPoll.Accounts.{User, UserToken, UserNotifier}
+  alias ElectionPoll.Accounts.{
+    User,
+    UserToken,
+    UserNotifier,
+    UserAllowedCampaign,
+    UserAllowedState,
+    UserAllowedConstituency,
+    UserFeaturePermission,
+    UserAllowedDevice
+  }
 
   ## Database getters
 
@@ -199,6 +208,8 @@ defmodule ElectionPoll.Accounts do
     Repo.one(query)
   end
 
+  
+
   @doc """
   Gets the user with the given magic link token.
   """
@@ -305,4 +316,170 @@ defmodule ElectionPoll.Accounts do
       end
     end)
   end
+
+  def list_non_admin_users do
+    User
+    |> where([u], u.role != "admin")
+    |> order_by([u], asc: u.email)
+    |> Repo.all()
+  end
+
+  
+  
+  def get_user_restrictions(user_id) do
+    %{
+      campaign_ids:
+        UserAllowedCampaign
+        |> where([r], r.user_id == ^user_id)
+        |> select([r], r.campaign_id)
+        |> Repo.all(),
+
+      state_ids:
+        UserAllowedState
+        |> where([r], r.user_id == ^user_id)
+        |> select([r], r.state_id)
+        |> Repo.all(),
+
+      constituency_ids:
+        UserAllowedConstituency
+        |> where([r], r.user_id == ^user_id)
+        |> select([r], r.constituency_id)
+        |> Repo.all(),
+      device_fingerprints:
+        UserAllowedDevice
+        |> where([r], r.user_id == ^user_id)
+        |> select([r], r.device_fingerprint)
+        |> Repo.all(),
+
+      feature_permissions:
+        Repo.get_by(UserFeaturePermission, user_id: user_id)
+    }
+  end
+
+  def replace_user_allowed_campaigns(user_id, campaign_ids) do
+    from(r in UserAllowedCampaign, where: r.user_id == ^user_id)
+    |> Repo.delete_all()
+
+    clean_ids(campaign_ids)
+    |> Enum.each(fn campaign_id ->
+      %UserAllowedCampaign{}
+      |> Ecto.Changeset.change(%{
+        user_id: user_id,
+        campaign_id: campaign_id
+      })
+      |> Repo.insert!()
+    end)
+
+    :ok
+  end
+
+  def replace_user_allowed_states(user_id, state_ids) do
+    from(r in UserAllowedState, where: r.user_id == ^user_id)
+    |> Repo.delete_all()
+
+    clean_ids(state_ids)
+    |> Enum.each(fn state_id ->
+      %UserAllowedState{}
+      |> Ecto.Changeset.change(%{
+        user_id: user_id,
+        state_id: state_id
+      })
+      |> Repo.insert!()
+    end)
+
+    :ok
+  end
+
+  def replace_user_allowed_constituencies(user_id, constituency_ids) do
+    from(r in UserAllowedConstituency, where: r.user_id == ^user_id)
+    |> Repo.delete_all()
+
+    clean_ids(constituency_ids)
+    |> Enum.each(fn constituency_id ->
+      %UserAllowedConstituency{}
+      |> Ecto.Changeset.change(%{
+        user_id: user_id,
+        constituency_id: constituency_id
+      })
+      |> Repo.insert!()
+    end)
+
+    :ok
+  end
+
+  def upsert_user_feature_permissions(user_id, permissions_attrs) do
+    permissions = %{
+      "can_view_responses" => truthy?(permissions_attrs["can_view_responses"]),
+      "can_view_response_detail" => truthy?(permissions_attrs["can_view_response_detail"]),
+      "can_view_location" => truthy?(permissions_attrs["can_view_location"]),
+      "can_view_exact_coordinates" => truthy?(permissions_attrs["can_view_exact_coordinates"]),
+      "can_view_mobile" => truthy?(permissions_attrs["can_view_mobile"]),
+      "can_view_voter_name" => truthy?(permissions_attrs["can_view_voter_name"]),
+      "can_view_selfie" => truthy?(permissions_attrs["can_view_selfie"]),
+      "can_view_device_fingerprint" => truthy?(permissions_attrs["can_view_device_fingerprint"]),
+      "can_export_responses" => truthy?(permissions_attrs["can_export_responses"])
+    }
+
+    attrs = %{
+      user_id: user_id,
+      permissions: permissions
+    }
+
+    case Repo.get_by(UserFeaturePermission, user_id: user_id) do
+      nil ->
+        %UserFeaturePermission{}
+        |> Ecto.Changeset.change(attrs)
+        |> Repo.insert()
+
+      record ->
+        record
+        |> Ecto.Changeset.change(attrs)
+        |> Repo.update()
+    end
+  end
+
+  def save_user_restrictions(user_id, params) do
+    Repo.transaction(fn ->
+      replace_user_allowed_campaigns(user_id, params["campaign_ids"] || [])
+      replace_user_allowed_states(user_id, params["state_ids"] || [])
+      replace_user_allowed_constituencies(user_id, params["constituency_ids"] || [])
+
+      device_fingerprints =
+        (params["device_fingerprints"] || "")
+        |> String.split("\n", trim: true)
+        |> Enum.map(&String.trim/1)
+        |> Enum.reject(&(&1 == ""))
+
+      replace_user_allowed_devices(user_id, device_fingerprints)
+
+      upsert_user_feature_permissions(user_id, params)
+    end)
+  end
+
+  def replace_user_allowed_devices(user_id, device_fingerprints) do
+    UserAllowedDevice
+    |> where([r], r.user_id == ^user_id)
+    |> Repo.delete_all()
+
+    Enum.each(device_fingerprints, fn fingerprint ->
+      %UserAllowedDevice{}
+      |> Ecto.Changeset.change(%{
+        user_id: user_id,
+        device_fingerprint: fingerprint
+      })
+      |> Repo.insert!()
+    end)
+  end
+
+  
+
+  defp clean_ids(nil), do: []
+
+  defp clean_ids(ids) when is_list(ids) do
+    ids
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.map(&String.to_integer(to_string(&1)))
+  end
+
+  defp truthy?(value), do: value in [true, "true", "on", "1", 1]
 end

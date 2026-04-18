@@ -45,12 +45,19 @@ defmodule ElectionPollWeb.Layouts do
 
             <%= if @current_scope do %>
               <nav class="hidden md:flex items-center gap-5 text-sm font-medium">
+              <%= if @current_scope.user.role == "admin" do %>
                 <a href={~p"/admin"} class="text-gray-700 hover:text-blue-600">Dashboard</a>
                 <a href={~p"/constituencies"} class="text-gray-700 hover:text-blue-600">Constituencies</a>
                 <a href={~p"/candidates"} class="text-gray-700 hover:text-blue-600">Candidates</a>
                 <a href={~p"/booths"} class="text-gray-700 hover:text-blue-600">Booths</a>
                 <a href={~p"/campaigns"} class="text-gray-700 hover:text-blue-600">Campaigns</a>
+                 <% end %>
+                 
                 <a href={~p"/responses"} class="text-gray-700 hover:text-blue-600">Responses</a>
+                 <!-- Add the Analytics link here for Subadmins -->
+                
+                  <a href={~p"/analytics"} class="text-gray-700 hover:text-blue-600">Analytics</a>
+                
               </nav>
             <% end %>
           </div>

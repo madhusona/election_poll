@@ -10,6 +10,7 @@ defmodule ElectionPoll.Accounts.User do
     field :authenticated_at, :utc_datetime, virtual: true
     field :role, :string, default: "public"
     timestamps(type: :utc_datetime)
+    has_many :access_scopes, ElectionPoll.Accounts.UserAccessScope
   end
 
   @doc """
